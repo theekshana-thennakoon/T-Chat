@@ -56,15 +56,15 @@
     padding-bottom: 60px;
   }
 
-  /* Floating Action Button (FAB) position on Mobile above bottom navigation bar */
+  /* Floating Action Button (FAB) position on Mobile higher above bottom navigation bar */
   .fab-new-chat-btn {
-    bottom: 78px;
-    right: 18px;
-    width: 52px;
-    height: 52px;
-    font-size: 1.25rem;
+    bottom: 96px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    font-size: 1.3rem;
     z-index: 45;
-    box-shadow: 0 4px 16px rgba(0, 168, 132, 0.5);
+    box-shadow: 0 4px 18px rgba(0, 168, 132, 0.55);
   }
 
   .tab-btn {
