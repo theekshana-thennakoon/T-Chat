@@ -206,11 +206,55 @@ const AuthModule = {
       btnSaveProfile.addEventListener('click', () => this.handleSaveProfile());
     }
 
+    // Save Tab Profile button
+    const btnSaveTabProfile = document.getElementById('btn-save-tab-profile');
+    if (btnSaveTabProfile) {
+      btnSaveTabProfile.addEventListener('click', () => this.handleSaveTabProfile());
+    }
+
+    // My Profile Tab Avatar File Listener
+    const fileTabAvatar = document.getElementById('my-tab-avatar-file');
+    if (fileTabAvatar) {
+      fileTabAvatar.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            document.getElementById('my-tab-avatar-img').src = evt.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
     // Logout button
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) {
       btnLogout.addEventListener('click', () => this.logout());
     }
+  },
+
+  handleSaveTabProfile() {
+    if (!window.AppConfig.currentUser) return;
+    const name = document.getElementById('my-tab-name-input').value.trim() || 'TChat User';
+    const about = document.getElementById('my-tab-about-input').value.trim() || 'Hey there! I am using TChat.';
+    const avatarSrc = document.getElementById('my-tab-avatar-img').src;
+
+    const updatedUser = {
+      ...window.AppConfig.currentUser,
+      name: name,
+      about: about,
+      avatar: avatarSrc,
+      lastSeen: new Date().toISOString()
+    };
+
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
+      window.AppConfig.db.collection('users').doc(updatedUser.uid).set(updatedUser, { merge: true });
+    }
+
+    MockDB.set('user_profile_' + updatedUser.uid, updatedUser);
+    alert('Profile updated successfully!');
+    this.completeLogin(updatedUser);
   },
 
   switchStep(stepId) {
@@ -405,6 +449,17 @@ const AuthModule = {
     document.getElementById('settings-avatar').src = userObj.avatar;
     document.getElementById('settings-name').textContent = userObj.name;
     document.getElementById('settings-phone').textContent = userObj.phone;
+
+    // Update My Profile Tab Elements
+    const myTabAvatar = document.getElementById('my-tab-avatar-img');
+    const myTabName = document.getElementById('my-tab-name-input');
+    const myTabAbout = document.getElementById('my-tab-about-input');
+    const myTabPhone = document.getElementById('my-tab-phone-display');
+
+    if (myTabAvatar) myTabAvatar.src = userObj.avatar;
+    if (myTabName) myTabName.value = userObj.name;
+    if (myTabAbout) myTabAbout.value = userObj.about || 'Hey there! I am using TChat.';
+    if (myTabPhone) myTabPhone.value = userObj.phone;
 
     // Transition Screens: Hide Auth screen completely, show Main Screen
     const authScreen = document.getElementById('auth-screen');

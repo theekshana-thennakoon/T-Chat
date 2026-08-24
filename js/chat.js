@@ -113,6 +113,30 @@ const ChatModule = {
       btnCloseQuote.addEventListener('click', () => this.clearQuote());
     }
 
+    // Click active chat header to view contact profile modal
+    const btnViewChatInfo = document.getElementById('btn-view-chat-info');
+    if (btnViewChatInfo) {
+      btnViewChatInfo.addEventListener('click', () => this.openContactProfileModal());
+    }
+
+    // Contact Profile Modal actions
+    const btnViewChatMsg = document.getElementById('btn-view-contact-chat');
+    if (btnViewChatMsg) {
+      btnViewChatMsg.addEventListener('click', () => {
+        const modal = document.getElementById('contact-profile-modal');
+        if (modal) modal.classList.remove('active');
+      });
+    }
+    const btnViewChatCall = document.getElementById('btn-view-contact-call');
+    if (btnViewChatCall) {
+      btnViewChatCall.addEventListener('click', () => {
+        const modal = document.getElementById('contact-profile-modal');
+        if (modal) modal.classList.remove('active');
+        const btnSimCall = document.getElementById('btn-sim-voice-call');
+        if (btnSimCall) btnSimCall.click();
+      });
+    }
+
     // Search bar filtering
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
@@ -121,6 +145,20 @@ const ChatModule = {
         this.filterChatsList(term);
       });
     }
+  },
+
+  openContactProfileModal() {
+    if (!this.activeContact) return;
+    const modal = document.getElementById('contact-profile-modal');
+    if (!modal) return;
+
+    document.getElementById('view-contact-avatar').src = this.activeContact.avatar;
+    document.getElementById('view-contact-name').textContent = this.activeContact.name;
+    document.getElementById('view-contact-phone').textContent = this.activeContact.phone || '';
+    document.getElementById('view-contact-about').textContent = this.activeContact.about || 'Hey there! I am using TChat.';
+    document.getElementById('view-contact-status-text').textContent = document.getElementById('chat-contact-status').textContent;
+
+    modal.classList.add('active');
   },
 
   formatLastSeen(timestamp) {

@@ -186,6 +186,11 @@
             <span>Contacts</span>
           </button>
 
+          <button class="tab-btn" data-tab="profile">
+            <i class="fa-solid fa-user"></i>
+            <span>Profile</span>
+          </button>
+
           <button class="tab-btn" data-tab="settings">
             <i class="fa-solid fa-sliders"></i>
             <span>Settings</span>
@@ -286,6 +291,40 @@
             <div id="app-contacts-list" class="contacts-list">
               <!-- Dynamic Matched Contacts -->
             </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 4: MY OWN PROFILE TAB -->
+        <div id="tab-content-profile" class="tab-pane">
+          <div class="profile-tab-container" style="padding: 20px;">
+            <div class="profile-avatar-picker" style="margin: 16px auto 24px auto; text-align: center;">
+              <div class="avatar-preview" id="my-profile-avatar-box" style="margin: 0 auto; width: 110px; height: 110px; position: relative;">
+                <img id="my-tab-avatar-img" src="https://api.dicebear.com/7.x/bottts/svg?seed=user1" alt="Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-blue);">
+                <label for="my-tab-avatar-file" class="avatar-edit-overlay" style="position: absolute; bottom: 0; right: 0; background: var(--accent-blue); color: #fff; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                  <i class="fa-solid fa-camera"></i>
+                </label>
+              </div>
+              <input type="file" id="my-tab-avatar-file" accept="image/*" class="hidden">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 6px; display: block;">Your Name</label>
+              <input type="text" id="my-tab-name-input" placeholder="Type your name" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-primary);">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 6px; display: block;">About / Status</label>
+              <input type="text" id="my-tab-about-input" placeholder="Hey there! I am using TChat." style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-primary);">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+              <label style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 6px; display: block;">Verified Phone Number</label>
+              <input type="text" id="my-tab-phone-display" readonly style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-secondary); opacity: 0.8; cursor: not-allowed;">
+            </div>
+
+            <button id="btn-save-tab-profile" class="btn btn-primary full-width" style="width: 100%; padding: 14px; border-radius: 8px; background: var(--accent-blue); color: #fff; font-weight: 600; cursor: pointer; border: none;">
+              Save Profile Changes <i class="fa-solid fa-check"></i>
+            </button>
           </div>
         </div>
 
@@ -564,6 +603,35 @@
 
 
 
+
+    <!-- VIEW CONTACT PROFILE MODAL -->
+    <div id="contact-profile-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 400px; text-align: center;">
+        <div class="modal-header">
+          <h3>Contact Info</h3>
+          <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 24px;">
+          <div style="width: 120px; height: 120px; margin: 0 auto 16px auto; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent-blue); box-shadow: var(--shadow-md);">
+            <img id="view-contact-avatar" src="" alt="Contact Photo" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+          <h3 id="view-contact-name" style="margin: 0 0 4px 0; color: var(--text-primary); font-size: 1.3rem;">Contact Name</h3>
+          <p id="view-contact-phone" style="margin: 0 0 16px 0; color: var(--accent-blue); font-weight: 600; font-size: 0.95rem;">+91 9876543210</p>
+          <div style="background: var(--bg-input); padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; text-align: left;">
+            <span style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">About / Status</span>
+            <span id="view-contact-about" style="color: var(--text-primary); font-size: 0.9rem;">Hey there! I am using TChat.</span>
+          </div>
+          <div style="background: var(--bg-input); padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; text-align: left;">
+            <span style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 4px;">Presence Status</span>
+            <span id="view-contact-status-text" style="color: var(--text-primary); font-size: 0.9rem;">online</span>
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: center;">
+            <button id="btn-view-contact-chat" class="btn btn-primary" style="flex: 1;"><i class="fa-solid fa-comment"></i> Message</button>
+            <button id="btn-view-contact-call" class="btn btn-secondary" style="flex: 1;"><i class="fa-solid fa-phone"></i> Call</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- SIMULATED VOICE / VIDEO CALL MODAL -->
     <div id="call-modal" class="modal center-modal">
