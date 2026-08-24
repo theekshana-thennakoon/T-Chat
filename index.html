@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TChat Web & Mobile</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+
+  <!-- Firebase v10 SDKs (Compat / ES Modules setup) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+</head>
+<body class="dark-theme">
+
+  <!-- APP CONTAINER -->
+  <div id="app" class="app-container">
+
+    <!-- ==================== 1. AUTH SCREEN ==================== -->
+    <div id="auth-screen" class="screen auth-screen active">
+      <div class="auth-card">
+        <div class="auth-brand">
+          <div class="brand-logo">
+            <i class="fa-brands fa-whatsapp"></i>
+          </div>
+          <h1>TChat</h1>
+          <p class="auth-subtitle">Simple. Secure. Reliable messaging.</p>
+        </div>
+
+        <!-- Phone Input Step -->
+        <div id="auth-step-phone" class="auth-step active">
+          <h3>Verify your phone number</h3>
+          <p class="step-desc">TChat will send an SMS code to verify your phone number.</p>
+
+          <div class="phone-input-group">
+            <select id="phone-country-code" class="country-select">
+              <option value="+91">+91 🇮🇳 India</option>
+              <option value="+1">+1 🇺🇸 United States / Canada</option>
+              <option value="+44">+44 🇬🇧 United Kingdom</option>
+              <option value="+61">+61 🇦🇺 Australia</option>
+              <option value="+49">+49 🇩🇪 Germany</option>
+              <option value="+33">+33 🇫🇷 France</option>
+              <option value="+81">+81 🇯🇵 Japan</option>
+              <option value="+55">+55 🇧🇷 Brazil</option>
+              <option value="+971">+971 🇦🇪 United Arab Emirates</option>
+              <option value="+966">+966 🇸🇦 Saudi Arabia</option>
+              <option value="+92">+92 🇵🇰 Pakistan</option>
+              <option value="+880">+880 🇧🇩 Bangladesh</option>
+              <option value="+94">+94 🇱🇰 Sri Lanka</option>
+              <option value="+234">+234 🇳🇬 Nigeria</option>
+              <option value="+20">+20 🇪🇬 Egypt</option>
+              <option value="+27">+27 🇿🇦 South Africa</option>
+              <option value="+60">+60 🇲🇾 Malaysia</option>
+              <option value="+65">+65 🇸🇬 Singapore</option>
+              <option value="+62">+62 🇮🇩 Indonesia</option>
+              <option value="+63">+63 🇵🇭 Philippines</option>
+              <option value="+86">+86 🇨🇳 China</option>
+              <option value="+82">+82 🇰🇷 South Korea</option>
+              <option value="+39">+39 🇮🇹 Italy</option>
+              <option value="+34">+34 🇪🇸 Spain</option>
+              <option value="+52">+52 🇲🇽 Mexico</option>
+            </select>
+            <input type="tel" id="phone-number" placeholder="Phone number (e.g. 9876543210)" autocomplete="tel">
+          </div>
+
+          <small id="e164-format-preview" class="e164-preview hidden">
+            <i class="fa-solid fa-circle-check"></i> Firebase E.164 Format: <strong id="e164-phone-text"></strong>
+          </small>
+
+          <div id="recaptcha-container" class="recaptcha-box"></div>
+
+          <button id="btn-send-otp" class="btn btn-primary full-width">
+            <span>Next</span> <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+
+        <!-- OTP Verification Step -->
+        <div id="auth-step-otp" class="auth-step">
+          <h3>Enter 6-digit code</h3>
+          <p class="step-desc">Code sent to <span id="display-verify-phone" class="highlight-phone">+91 9876543210</span></p>
+
+          <div class="otp-inputs">
+            <input type="text" maxlength="1" class="otp-digit" autofocus>
+            <input type="text" maxlength="1" class="otp-digit">
+            <input type="text" maxlength="1" class="otp-digit">
+            <input type="text" maxlength="1" class="otp-digit">
+            <input type="text" maxlength="1" class="otp-digit">
+            <input type="text" maxlength="1" class="otp-digit">
+          </div>
+
+          <div class="otp-actions">
+            <button id="btn-resend-otp" class="btn-text">Resend Code</button>
+            <button id="btn-change-phone" class="btn-text">Wrong Number?</button>
+          </div>
+
+          <button id="btn-verify-otp" class="btn btn-primary full-width">
+            <span>Verify & Continue</span>
+          </button>
+        </div>
+
+        <!-- Profile Setup Step -->
+        <div id="auth-step-profile" class="auth-step">
+          <h3>Profile info</h3>
+          <p class="step-desc">Please provide your name and an optional profile picture.</p>
+
+          <div class="profile-avatar-picker">
+            <div class="avatar-preview" id="avatar-preview-box">
+              <img id="profile-avatar-img" src="https://api.dicebear.com/7.x/bottts/svg?seed=user1" alt="Avatar">
+              <label for="profile-avatar-file" class="avatar-edit-overlay">
+                <i class="fa-solid fa-camera"></i>
+              </label>
+            </div>
+            <input type="file" id="profile-avatar-file" accept="image/*" class="hidden">
+          </div>
+
+          <div class="form-group">
+            <label for="profile-name-input">Your Name</label>
+            <input type="text" id="profile-name-input" placeholder="Type your name here" value="Alex Morgan">
+          </div>
+
+          <div class="form-group">
+            <label for="profile-about-input">About / Status</label>
+            <input type="text" id="profile-about-input" placeholder="Hey there! I am using TChat." value="Available | At Work 💻">
+          </div>
+
+          <button id="btn-save-profile" class="btn btn-primary full-width">
+            <span>Finish Setup</span> <i class="fa-solid fa-check"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ==================== 2. MAIN CHAT & WORKSPACE SCREEN ==================== -->
+    <div id="main-screen" class="screen main-screen">
+
+      <!-- LEFT SIDEBAR -->
+      <aside id="sidebar" class="sidebar">
+        
+        <!-- Sidebar Header -->
+        <header class="sidebar-header">
+          <div class="user-profile-btn" id="btn-open-profile-drawer" title="Your Profile">
+            <img id="current-user-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user1" alt="User Avatar">
+            <span id="current-user-name" class="user-display-name">Alex Morgan</span>
+          </div>
+
+          <div class="header-actions">
+            <button class="icon-btn" id="btn-open-firebase-settings" title="Firebase Settings">
+              <i class="fa-solid fa-gear"></i>
+            </button>
+            <button class="icon-btn" id="btn-open-contacts-modal" title="New Chat / Contacts">
+              <i class="fa-solid fa-user-plus"></i>
+            </button>
+            <button class="icon-btn" id="btn-open-menu" title="Menu">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- Navigation Tabs (Chats, Status, Contacts, Settings) -->
+        <nav class="sidebar-tabs">
+          <button class="tab-btn active" data-tab="chats">
+            <i class="fa-solid fa-comment-dots"></i>
+            <span>Chats</span>
+            <span id="unread-total-badge" class="badge hidden">0</span>
+          </button>
+
+          <button class="tab-btn" data-tab="status">
+            <i class="fa-solid fa-circle-notch"></i>
+            <span>Status</span>
+            <span id="status-unread-indicator" class="dot-indicator hidden"></span>
+          </button>
+
+          <button class="tab-btn" data-tab="contacts">
+            <i class="fa-solid fa-address-book"></i>
+            <span>Contacts</span>
+          </button>
+
+          <button class="tab-btn" data-tab="settings">
+            <i class="fa-solid fa-sliders"></i>
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        <!-- Search Bar -->
+        <div class="sidebar-search">
+          <div class="search-input-wrapper">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="search-input" placeholder="Search or start new chat">
+            <button id="btn-clear-search" class="clear-icon hidden"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 1: CHATS LIST -->
+        <div id="tab-content-chats" class="tab-pane active">
+          <div id="chats-list" class="chats-list">
+            <!-- Dynamic Chat Items render here -->
+          </div>
+          <div id="chats-empty-state" class="empty-state hidden">
+            <i class="fa-regular fa-comments"></i>
+            <p>No conversations yet.</p>
+            <button class="btn btn-secondary btn-sm" id="btn-start-first-chat">
+              <i class="fa-solid fa-plus"></i> Start a Chat
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 2: STATUS TAB -->
+        <div id="tab-content-status" class="tab-pane">
+          <div class="status-tab-container">
+            <!-- My Status Header -->
+            <div class="my-status-card" id="btn-my-status-card">
+              <div class="status-avatar-wrapper">
+                <img id="my-status-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user1" alt="My Avatar">
+                <div class="add-status-badge">
+                  <i class="fa-solid fa-plus"></i>
+                </div>
+              </div>
+              <div class="status-meta">
+                <h4>My status</h4>
+                <p id="my-status-subtext">Tap to add status update</p>
+              </div>
+              <div class="status-create-actions">
+                <button class="btn-circle-action" id="btn-create-text-status" title="Text Status">
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button class="btn-circle-action" id="btn-create-media-status" title="Photo Status">
+                  <i class="fa-solid fa-camera"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="status-section-header">Recent updates</div>
+            <div id="recent-statuses-list" class="status-list">
+              <!-- Dynamic Contact Status Items -->
+            </div>
+
+            <div class="status-section-header">Viewed updates</div>
+            <div id="viewed-statuses-list" class="status-list">
+              <!-- Dynamic Viewed Statuses -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 3: CONTACTS TAB -->
+        <div id="tab-content-contacts" class="tab-pane">
+          <div class="contacts-tab-container">
+            <div class="contacts-header-actions">
+              <button id="btn-import-web-contacts" class="action-tile">
+                <div class="tile-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                <div class="tile-text">
+                  <h5>Sync Phonebook Contacts</h5>
+                  <p>Uses Web Contacts API</p>
+                </div>
+              </button>
+
+              <button id="btn-add-manual-contact" class="action-tile">
+                <div class="tile-icon"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="tile-text">
+                  <h5>Add New Contact</h5>
+                  <p>Add via phone number</p>
+                </div>
+              </button>
+            </div>
+
+            <div class="status-section-header">Contacts on TChat</div>
+            <div id="app-contacts-list" class="contacts-list">
+              <!-- Dynamic Matched Contacts -->
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB CONTENT 4: SETTINGS TAB -->
+        <div id="tab-content-settings" class="tab-pane">
+          <div class="settings-tab-container">
+            <div class="settings-user-card" id="btn-settings-profile">
+              <img id="settings-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user1" alt="Avatar">
+              <div class="settings-user-info">
+                <h4 id="settings-name">Alex Morgan</h4>
+                <p id="settings-phone">+91 9876543210</p>
+              </div>
+            </div>
+
+            <div class="settings-menu-list">
+              <div class="settings-item" id="toggle-dark-mode">
+                <div class="item-icon"><i class="fa-solid fa-moon"></i></div>
+                <div class="item-label">Dark Mode</div>
+                <div class="item-control">
+                  <label class="switch">
+                    <input type="checkbox" id="chk-dark-mode" checked>
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-item" id="toggle-sound-effects">
+                <div class="item-icon"><i class="fa-solid fa-volume-high"></i></div>
+                <div class="item-label">Message Notification Sounds</div>
+                <div class="item-control">
+                  <label class="switch">
+                    <input type="checkbox" id="chk-sounds" checked>
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="settings-item" id="btn-open-firebase-config-settings">
+                <div class="item-icon"><i class="fa-solid fa-database"></i></div>
+                <div class="item-label">
+                  Firebase Credentials Setup
+                  <small id="firebase-status-text" class="status-badge live">Live Mode Active</small>
+                </div>
+                <i class="fa-solid fa-chevron-right arrow-icon"></i>
+              </div>
+
+              <div class="settings-item danger" id="btn-logout">
+                <div class="item-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+                <div class="item-label">Log Out</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+
+      <!-- RIGHT ACTIVE CHAT PANEL -->
+      <main id="chat-workspace" class="chat-workspace">
+
+        <!-- Default Empty Screen (When no chat selected) -->
+        <div id="no-chat-selected" class="no-chat-screen active">
+          <div class="welcome-container">
+            <div class="welcome-illustration">
+              <i class="fa-brands fa-whatsapp"></i>
+            </div>
+            <h2>TChat Web & Mobile</h2>
+            <p>Send and receive messages without keeping your phone online.<br>Use TChat on up to 4 linked devices and 1 phone at the same time.</p>
+            <div class="security-note">
+              <i class="fa-solid fa-lock"></i> End-to-end encrypted
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Conversation Screen -->
+        <div id="active-chat-screen" class="active-chat-screen">
+          
+          <!-- Chat Header -->
+          <header class="chat-header">
+            <button id="btn-back-to-chats" class="icon-btn mobile-only" title="Back to chats">
+              <i class="fa-solid fa-arrow-left"></i>
+            </button>
+
+            <div class="chat-contact-info" id="btn-view-chat-info">
+              <img id="chat-contact-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user2" alt="Contact Avatar">
+              <div class="chat-title-group">
+                <h3 id="chat-contact-name">Sarah Jenkins</h3>
+                <span id="chat-contact-status" class="online-status">online</span>
+              </div>
+            </div>
+
+            <div class="chat-header-actions">
+              <button class="icon-btn" id="btn-sim-voice-call" title="Voice Call"><i class="fa-solid fa-phone"></i></button>
+              <button class="icon-btn" id="btn-sim-video-call" title="Video Call"><i class="fa-solid fa-video"></i></button>
+              <button class="icon-btn" id="btn-search-in-chat" title="Search Chat"><i class="fa-solid fa-magnifying-glass"></i></button>
+              <button class="icon-btn" id="btn-chat-options" title="More Options"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            </div>
+          </header>
+
+          <!-- Chat Messages Container -->
+          <div id="chat-messages-container" class="messages-container">
+            <!-- Dynamic Chat Messages & Dates render here -->
+          </div>
+
+          <!-- Typing Bar / Input Area -->
+          <footer class="chat-input-footer">
+
+            <!-- Reply Preview Bar (When quoting a message) -->
+            <div id="quote-preview-bar" class="quote-preview-bar hidden">
+              <div class="quote-bar-content">
+                <span id="quote-sender-name" class="quote-author">Sender</span>
+                <p id="quote-text-content" class="quote-text">Message preview</p>
+              </div>
+              <button id="btn-close-quote" class="icon-btn-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Main Input Controls -->
+            <div class="input-controls-wrapper">
+              <button class="icon-btn" id="btn-toggle-emoji" title="Emojis">
+                <i class="fa-regular fa-face-smile"></i>
+              </button>
+
+              <div class="attachment-wrapper">
+                <button class="icon-btn" id="btn-toggle-attach" title="Attach Media">
+                  <i class="fa-solid fa-paperclip"></i>
+                </button>
+
+                <!-- Attach Menu Dropdown -->
+                <div id="attach-dropdown" class="attach-dropdown hidden">
+                  <label class="attach-item" for="attach-image-input">
+                    <i class="fa-solid fa-image icon-img"></i>
+                    <span>Photos & Videos</span>
+                  </label>
+                  <input type="file" id="attach-image-input" accept="image/*" class="hidden">
+
+                  <label class="attach-item" for="attach-file-input">
+                    <i class="fa-solid fa-file-lines icon-doc"></i>
+                    <span>Document</span>
+                  </label>
+                  <input type="file" id="attach-file-input" class="hidden">
+                </div>
+              </div>
+
+              <div class="message-text-input-box">
+                <textarea id="message-input" rows="1" placeholder="Type a message"></textarea>
+              </div>
+
+              <!-- Voice Recording UI -->
+              <div id="voice-recording-bar" class="voice-recording-bar hidden">
+                <div class="recording-dot blink"></div>
+                <span id="recording-time" class="recording-timer">00:00</span>
+                <canvas id="waveform-canvas" width="120" height="30"></canvas>
+                <button id="btn-cancel-recording" class="btn-text danger">Cancel</button>
+              </div>
+
+              <!-- Send vs Mic Toggle Button -->
+              <button class="send-mic-btn" id="btn-send-or-mic" title="Voice Message / Send">
+                <i id="icon-mic" class="fa-solid fa-microphone"></i>
+                <i id="icon-send" class="fa-solid fa-paper-plane hidden"></i>
+              </button>
+            </div>
+
+            <!-- Emoji Picker Popup -->
+            <div id="emoji-picker-container" class="emoji-picker-container hidden">
+              <div class="emoji-list" id="emoji-grid">
+                😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😝 😜 🤪 🤨 🧐 🤓 😎 🤩 🥳 😏 😒 😞 😔 😟 😕 🙁 ☹️ 😣 😖 😫 😩 🥺 😢 😭 😤 😠 😡 🤬 🤯 😳 🥵 🥶 😱 📁 👍 👎 🙏 👏 💪 ❤️ 🔥 ✨ 💯 🎉 🍕 ☕ ⚽ 🚗 📱
+              </div>
+            </div>
+
+          </footer>
+
+        </div>
+
+      </main>
+
+    </div>
+
+
+    <!-- ==================== 3. MODALS & OVERLAYS ==================== -->
+
+    <!-- FULLSCREEN STATUS STORY VIEWER MODAL -->
+    <div id="status-viewer-modal" class="modal status-viewer-modal">
+      <div class="story-container">
+        <!-- Story Progress Bar Headers -->
+        <div id="story-progress-bar-container" class="story-progress-bars">
+          <!-- Dynamic progress segment bars -->
+        </div>
+
+        <!-- Story Top Meta Header -->
+        <div class="story-top-header">
+          <div class="story-user-meta">
+            <img id="story-author-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user2" alt="Avatar">
+            <div>
+              <h4 id="story-author-name">Sarah Jenkins</h4>
+              <span id="story-time-ago" class="story-time">Today, 2:45 PM</span>
+            </div>
+          </div>
+
+          <div class="story-controls">
+            <button id="btn-pause-story" class="icon-btn-story"><i class="fa-solid fa-pause"></i></button>
+            <button id="btn-close-story" class="icon-btn-story"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+
+        <!-- Story Display Body -->
+        <div id="story-display-area" class="story-display-area">
+          <div id="story-text-view" class="story-text-wrapper">
+            <p id="story-text-content">Status text content goes here!</p>
+          </div>
+          <img id="story-image-view" class="story-image-content hidden" src="" alt="Story photo">
+
+          <!-- Left / Right Click Nav Targets -->
+          <div id="story-nav-prev" class="story-nav-zone left"></div>
+          <div id="story-nav-next" class="story-nav-zone right"></div>
+        </div>
+
+        <!-- Story Bottom Reply Bar (For contacts) OR Viewers list (For my own status) -->
+        <div id="story-bottom-bar" class="story-bottom-bar">
+          <div id="story-reply-box" class="story-reply-input-group">
+            <input type="text" id="story-reply-text" placeholder="Reply to status...">
+            <button id="btn-send-status-reply" class="btn-circle-send"><i class="fa-solid fa-paper-plane"></i></button>
+          </div>
+
+          <div id="story-views-box" class="story-views-indicator hidden">
+            <i class="fa-solid fa-eye"></i> <span id="story-views-count">0</span> views
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- CREATE TEXT STATUS MODAL -->
+    <div id="create-text-status-modal" class="modal center-modal">
+      <div class="modal-dialog status-dialog">
+        <div class="modal-header">
+          <h3>Create Text Status</h3>
+          <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div id="text-status-canvas" class="status-canvas bg-color-1">
+            <textarea id="text-status-input" placeholder="Type a status..." maxlength="250"></textarea>
+          </div>
+          <div class="status-customizer-toolbar">
+            <div class="color-pickers">
+              <span class="color-circle bg-color-1 active" data-bg="bg-color-1"></span>
+              <span class="color-circle bg-color-2" data-bg="bg-color-2"></span>
+              <span class="color-circle bg-color-3" data-bg="bg-color-3"></span>
+              <span class="color-circle bg-color-4" data-bg="bg-color-4"></span>
+              <span class="color-circle bg-color-5" data-bg="bg-color-5"></span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-publish-text-status" class="btn btn-primary full-width">
+            <i class="fa-solid fa-paper-plane"></i> Post Status
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ADD MANUAL CONTACT MODAL -->
+    <div id="add-contact-modal" class="modal center-modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3>Add New Contact</h3>
+          <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="new-contact-name">Contact Name</label>
+            <input type="text" id="new-contact-name" placeholder="e.g. John Doe">
+          </div>
+          <div class="form-group">
+            <label for="new-contact-phone">Mobile Phone Number</label>
+            <input type="tel" id="new-contact-phone" placeholder="e.g. +91 9876543211">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-new-contact" class="btn btn-primary full-width">Save Contact</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- FIREBASE SETTINGS MODAL -->
+    <div id="firebase-settings-modal" class="modal center-modal">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-database"></i> Firebase Credentials Configuration</h3>
+          <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            The application works out of the box in <strong>Demo Mode</strong>. Enter your custom Firebase Web App Config to use production backend services.
+          </p>
+
+          <div class="form-group">
+            <label for="cfg-apiKey">API Key</label>
+            <input type="text" id="cfg-apiKey" placeholder="AIzaSy...">
+          </div>
+          <div class="form-group">
+            <label for="cfg-authDomain">Auth Domain</label>
+            <input type="text" id="cfg-authDomain" placeholder="your-project.firebaseapp.com">
+          </div>
+          <div class="form-group">
+            <label for="cfg-projectId">Project ID</label>
+            <input type="text" id="cfg-projectId" placeholder="your-project-id">
+          </div>
+          <div class="form-group">
+            <label for="cfg-storageBucket">Storage Bucket</label>
+            <input type="text" id="cfg-storageBucket" placeholder="your-project.appspot.com">
+          </div>
+          <div class="form-group">
+            <label for="cfg-messagingSenderId">Messaging Sender ID</label>
+            <input type="text" id="cfg-messagingSenderId" placeholder="1234567890">
+          </div>
+          <div class="form-group">
+            <label for="cfg-appId">App ID</label>
+            <input type="text" id="cfg-appId" placeholder="1:1234567890:web:abcde">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-save-firebase-keys" class="btn btn-primary">Save & Connect Live Firebase</button>
+          <button id="btn-reset-demo-mode" class="btn btn-secondary">Switch to Demo Mode</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- SIMULATED VOICE / VIDEO CALL MODAL -->
+    <div id="call-modal" class="modal center-modal">
+      <div class="call-card">
+        <img id="call-user-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user2" alt="Avatar">
+        <h3 id="call-user-name">Sarah Jenkins</h3>
+        <p id="call-status-label">Calling...</p>
+        <div class="call-actions">
+          <button id="btn-end-call" class="btn-circle-call end"><i class="fa-solid fa-phone-slash"></i></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Application Logic Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/contacts.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/status.js"></script>
+  <script src="js/voice.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
