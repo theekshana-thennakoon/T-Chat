@@ -157,14 +157,30 @@ const ChatModule = {
     const modal = document.getElementById('contact-profile-modal');
     if (!modal) return;
 
-    const avatarUrl = this.activeContact.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(this.activeContact.phone || this.activeContact.id || this.activeContact.name));
-    const viewAvatar = document.getElementById('view-contact-avatar');
-    if (viewAvatar) viewAvatar.src = avatarUrl;
+    let contactObj = this.activeContact;
+    if (window.ContactsModule && window.ContactsModule.contacts) {
+      const activeClean = this.activeContact.phone ? this.activeContact.phone.replace(/\D/g, '') : '';
+      const found = window.ContactsModule.contacts.find(c => c.id === this.activeContact.id || (c.phone && c.phone.replace(/\D/g, '') === activeClean));
+      if (found) contactObj = found;
+    }
 
-    document.getElementById('view-contact-name').textContent = this.activeContact.name;
-    document.getElementById('view-contact-phone').textContent = this.activeContact.phone || '';
-    document.getElementById('view-contact-about').textContent = this.activeContact.about || 'Hey there! I am using TChat.';
-    document.getElementById('view-contact-status-text').textContent = document.getElementById('chat-contact-status').textContent;
+    const avatarUrl = contactObj.avatar || this.activeContact.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(contactObj.phone || contactObj.id || contactObj.name || 'user2'));
+    
+    const viewAvatar = document.getElementById('view-contact-avatar');
+    if (viewAvatar) {
+      viewAvatar.src = avatarUrl;
+      viewAvatar.style.display = 'block';
+      viewAvatar.style.visibility = 'visible';
+    }
+
+    document.getElementById('view-contact-name').textContent = contactObj.name || this.activeContact.name;
+    document.getElementById('view-contact-phone').textContent = contactObj.phone || this.activeContact.phone || '';
+    document.getElementById('view-contact-about').textContent = contactObj.about || this.activeContact.about || 'Hey there! I am using TChat.';
+    
+    const statusEl = document.getElementById('chat-contact-status');
+    if (statusEl) {
+      document.getElementById('view-contact-status-text').textContent = statusEl.textContent;
+    }
 
     modal.classList.add('active');
   },

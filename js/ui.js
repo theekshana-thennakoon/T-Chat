@@ -1,6 +1,52 @@
-/* ==========================================================================
-   UI NAVIGATION, THEMES, & MODAL HANDLERS
-   ========================================================================== */
+/* Global Top-Right Toast Notification System */
+window.showToast = function(message, type = 'success', duration = 3500) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  let iconClass = 'fa-circle-check';
+  if (type === 'error' || type === 'danger') iconClass = 'fa-circle-xmark';
+  else if (type === 'warning') iconClass = 'fa-triangle-exclamation';
+
+  toast.className = `toast-notification ${type}`;
+  toast.innerHTML = `
+    <i class="fa-solid ${iconClass} toast-icon"></i>
+    <div class="toast-message">${message}</div>
+    <button class="toast-close" onclick="this.parentElement.remove()"><i class="fa-solid fa-xmark"></i></button>
+  `;
+
+  container.appendChild(toast);
+
+  // Trigger smooth enter animation
+  requestAnimationFrame(() => {
+    toast.classList.add('active');
+  });
+
+  // Auto remove after duration
+  setTimeout(() => {
+    toast.classList.remove('active');
+    setTimeout(() => {
+      if (toast.parentElement) toast.remove();
+    }, 350);
+  }, duration);
+};
+
+// Override native browser alert to route all system alerts to top-right Toast Notifications
+window.alert = function(msg) {
+  let type = 'success';
+  const lower = String(msg).toLowerCase();
+  if (lower.includes('error') || lower.includes('failed') || lower.includes('could not') || lower.includes('wrong') || lower.includes('invalid')) {
+    type = 'error';
+  } else if (lower.includes('please') || lower.includes('required') || lower.includes('already')) {
+    type = 'warning';
+  }
+  window.showToast(msg, type);
+};
 
 const UIModule = {
   init() {
