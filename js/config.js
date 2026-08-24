@@ -60,6 +60,11 @@ const MockDB = {
     } catch (e) {
       console.error('LocalStorage write error', e);
     }
+  },
+  remove(key) {
+    try {
+      localStorage.removeItem('tchat_' + key);
+    } catch (e) {}
   }
 };
 

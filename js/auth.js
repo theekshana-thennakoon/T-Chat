@@ -430,9 +430,27 @@ const AuthModule = {
   logout() {
     if (confirm('Are you sure you want to log out from TChat?')) {
       if (window.AppConfig.isLiveFirebase && window.AppConfig.auth) {
-        window.AppConfig.auth.signOut();
+        window.AppConfig.auth.signOut().catch(err => console.warn('Sign out notice:', err));
       }
+      window.AppConfig.currentUser = null;
+      MockDB.remove('current_session');
+      localStorage.removeItem('tchat_current_session');
       localStorage.removeItem('wa_mock_current_session');
+
+      // Transition Screens: Show Auth screen, hide Main Screen
+      const authScreen = document.getElementById('auth-screen');
+      const mainScreen = document.getElementById('main-screen');
+
+      if (authScreen) {
+        authScreen.classList.add('active');
+        authScreen.style.display = 'flex';
+      }
+      if (mainScreen) {
+        mainScreen.classList.remove('active');
+        mainScreen.style.display = 'none';
+      }
+
+      this.switchStep('auth-step-phone');
       window.location.reload();
     }
   }
