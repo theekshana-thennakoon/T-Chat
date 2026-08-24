@@ -8,20 +8,35 @@ const ContactsModule = {
   init() {
     this.bindEvents();
     this.loadContacts();
+    this.syncFirebaseUsers();
   },
 
   bindEvents() {
-    // Import Web Contacts button
+    // Import Web Contacts button (Mobile Chrome / Safari API)
     const btnImport = document.getElementById('btn-import-web-contacts');
     if (btnImport) {
       btnImport.addEventListener('click', () => this.requestWebContacts());
+    }
+
+    // Import .VCF file listener
+    const fileVcf = document.getElementById('input-vcf-file');
+    if (fileVcf) {
+      fileVcf.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => this.parseAndImportVCF(evt.target.result);
+          reader.readAsText(file);
+        }
+      });
     }
 
     // Add manual contact button
     const btnAdd = document.getElementById('btn-add-manual-contact');
     if (btnAdd) {
       btnAdd.addEventListener('click', () => {
-        document.getElementById('add-contact-modal').classList.add('active');
+        const modal = document.getElementById('add-contact-modal');
+        if (modal) modal.classList.add('active');
       });
     }
 
@@ -32,7 +47,7 @@ const ContactsModule = {
     }
   },
 
-  // HTML5 Web Contacts Picker API (Mobile browsers)
+  // HTML5 Web Contacts Picker API (Mobile Browsers)
   async requestWebContacts() {
     if ('contacts' in navigator && 'select' in navigator.contacts) {
       try {
@@ -41,66 +56,126 @@ const ContactsModule = {
         const selected = await navigator.contacts.select(props, opts);
         
         if (selected && selected.length > 0) {
+          let addedCount = 0;
           selected.forEach(c => {
-            const name = c.name ? c.name[0] : 'Phonebook Contact';
-            const tel = c.tel ? c.tel[0] : '';
+            const name = c.name && c.name.length > 0 ? c.name[0] : 'Phone Contact';
+            const tel = c.tel && c.tel.length > 0 ? c.tel[0] : '';
             if (tel) {
-              this.addContact(name, tel);
+              if (this.addContact(name, tel)) addedCount++;
             }
           });
-          alert(`Successfully synced ${selected.length} contacts from your device!`);
+          alert(`Successfully synced ${addedCount} contacts from your device!`);
           this.renderContactsList();
         }
       } catch (err) {
         console.warn('Web Contacts API Error:', err);
-        alert('Could not access mobile contacts. You can manually add contacts by phone number.');
+        alert('Could not access device contacts. Use the "Import .VCF File" button or add contacts manually.');
       }
     } else {
-      alert('Web Contacts API is supported on mobile browsers (Chrome/Safari on Android & iOS). You can also add contacts manually!');
+      alert('Web Contacts API is supported on mobile Chrome & Safari. On Desktop, use "Import .VCF File" to import exported contacts!');
     }
   },
 
+  // VCF / vCard File Parser (.vcf)
+  parseAndImportVCF(vcfContent) {
+    if (!vcfContent) return;
+
+    const cards = vcfContent.split('BEGIN:VCARD');
+    let imported = 0;
+
+    cards.forEach(card => {
+      let name = '';
+      let tel = '';
+
+      const lines = card.split(/\r?\n/);
+      lines.forEach(line => {
+        if (line.startsWith('FN:') || line.startsWith('N:')) {
+          const val = line.substring(line.indexOf(':') + 1).replace(/;/g, ' ').trim();
+          if (val && !name) name = val;
+        } else if (line.includes('TEL') && line.includes(':')) {
+          const val = line.substring(line.indexOf(':') + 1).trim();
+          if (val && !tel) tel = val;
+        }
+      });
+
+      if (name && tel) {
+        if (this.addContact(name, tel)) imported++;
+      }
+    });
+
+    alert(`Imported ${imported} contacts from .VCF file!`);
+    this.renderContactsList();
+  },
+
+  // Manual Contact Creation
   handleSaveManualContact() {
     const name = document.getElementById('new-contact-name').value.trim();
     const phone = document.getElementById('new-contact-phone').value.trim();
 
     if (!name || !phone) {
-      alert('Please enter both name and phone number.');
+      alert('Please enter both contact name and phone number.');
       return;
     }
 
-    this.addContact(name, phone);
-    document.getElementById('new-contact-modal').classList.remove('active');
+    const added = this.addContact(name, phone);
+    
+    // Close modal cleanly
+    const modal = document.getElementById('add-contact-modal');
+    if (modal) modal.classList.remove('active');
+
     document.getElementById('new-contact-name').value = '';
     document.getElementById('new-contact-phone').value = '';
-    alert(`Contact ${name} added successfully!`);
+
+    if (added) {
+      alert(`Contact "${name}" added successfully!`);
+    } else {
+      alert(`Contact "${name}" (${phone}) is already in your contact list.`);
+    }
+
     this.renderContactsList();
   },
 
   addContact(name, phone) {
     const normalizedPhone = this.normalizePhone(phone);
-    const newContact = {
-      id: 'contact_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-      name: name,
-      phone: normalizedPhone,
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(normalizedPhone),
-      about: 'Available on TChat'
-    };
-
-    // Check if duplicate
     const exists = this.contacts.find(c => c.phone === normalizedPhone);
+    
     if (!exists) {
+      const newContact = {
+        id: 'contact_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        name: name,
+        phone: normalizedPhone,
+        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(normalizedPhone),
+        about: 'Available on TChat'
+      };
       this.contacts.push(newContact);
       this.saveContacts();
+      return true;
     }
+    return false;
   },
 
   normalizePhone(phone) {
-    const digits = phone.replace(/[^\d+]/g, '');
-    if (!digits.startsWith('+')) {
-      return '+91 ' + digits; // Default country prefix fallback
+    if (!phone) return '';
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    if (!cleaned.startsWith('+')) {
+      if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
+      return '+91 ' + cleaned; // Default country prefix fallback
     }
-    return digits;
+    return cleaned;
+  },
+
+  syncFirebaseUsers() {
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
+      window.AppConfig.db.collection('users').get().then(snapshot => {
+        snapshot.forEach(doc => {
+          const u = doc.data();
+          if (u && u.phone && u.uid !== (window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : '')) {
+            this.addContact(u.name || u.phone, u.phone);
+          }
+        });
+        this.renderContactsList();
+      }).catch(err => console.warn('Firestore users sync notice:', err));
+    }
   },
 
   loadContacts() {
@@ -124,7 +199,7 @@ const ContactsModule = {
     if (!container) return;
 
     if (this.contacts.length === 0) {
-      container.innerHTML = `<p class="empty-state">No contacts found. Use the buttons above to sync or add contacts.</p>`;
+      container.innerHTML = `<p class="empty-state"><i class="fa-solid fa-address-book"></i><br>No contacts found.<br>Use "Sync Phonebook" or "Import .VCF File" above to add your contacts.</p>`;
       return;
     }
 

@@ -3,37 +3,37 @@
    ========================================================================== */
 
 :root {
-  /* Color Palette - WhatsApp Dark Theme (Default) */
+  /* Color Palette - TChat Blue Dark Theme (Default) */
   --bg-app: #0b141a;
   --bg-sidebar: #111b21;
-  --bg-header: #202c33;
-  --bg-chat: #0b141a;
-  --bg-input: #2a3942;
-  --bg-hover: #202c33;
-  --bg-active: #2a3942;
-  --bg-modal: #222e35;
+  --bg-header: #1e293b;
+  --bg-chat: #0f172a;
+  --bg-input: #1e293b;
+  --bg-hover: #1e293b;
+  --bg-active: #334155;
+  --bg-modal: #1e293b;
   --bg-card: #111b21;
   
-  --text-primary: #e9edef;
-  --text-secondary: #8696a0;
-  --text-muted: #667781;
-  --text-link: #53bdeb;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-link: #38bdf8;
   
-  --accent-green: #00a884;
-  --accent-green-hover: #008f70;
-  --accent-blue: #53bdeb;
+  --accent-green: #0084ff;
+  --accent-green-hover: #0066cc;
+  --accent-blue: #0084ff;
   
-  --bubble-out: #005c4b;
-  --bubble-in: #202c33;
-  --bubble-out-text: #e9edef;
-  --bubble-in-text: #e9edef;
+  --bubble-out: #0066cc;
+  --bubble-in: #1e293b;
+  --bubble-out-text: #ffffff;
+  --bubble-in-text: #f8fafc;
   
-  --status-unread: #00a884;
-  --status-read: #8696a0;
-  --status-ring-bg: #202c33;
+  --status-unread: #0084ff;
+  --status-read: #64748b;
+  --status-ring-bg: #1e293b;
   
-  --border-light: rgba(134, 150, 160, 0.15);
-  --border-focus: #00a884;
+  --border-light: rgba(148, 163, 184, 0.15);
+  --border-focus: #0084ff;
   
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
@@ -52,28 +52,28 @@
 
 /* Light Theme Overrides */
 body.light-theme {
-  --bg-app: #e5ddd5;
+  --bg-app: #f1f5f9;
   --bg-sidebar: #ffffff;
-  --bg-header: #f0f2f5;
-  --bg-chat: #efeae2;
-  --bg-input: #f0f2f5;
-  --bg-hover: #f5f6f6;
-  --bg-active: #e9edef;
+  --bg-header: #f8fafc;
+  --bg-chat: #e2e8f0;
+  --bg-input: #f1f5f9;
+  --bg-hover: #f1f5f9;
+  --bg-active: #e2e8f0;
   --bg-modal: #ffffff;
   --bg-card: #ffffff;
   
-  --text-primary: #111b21;
-  --text-secondary: #667781;
-  --text-muted: #8696a0;
-  --text-link: #027eb5;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-link: #0284c7;
   
-  --accent-green: #00a884;
-  --accent-green-hover: #008f70;
+  --accent-green: #0084ff;
+  --accent-green-hover: #0066cc;
   
-  --bubble-out: #d9fdd3;
+  --bubble-out: #dbeafe;
   --bubble-in: #ffffff;
-  --bubble-out-text: #111b21;
-  --bubble-in-text: #111b21;
+  --bubble-out-text: #0f172a;
+  --bubble-in-text: #0f172a;
   
   --border-light: rgba(0, 0, 0, 0.08);
 }

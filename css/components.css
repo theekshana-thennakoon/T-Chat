@@ -13,7 +13,7 @@
   height: 100vh;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(180deg, #00a884 0%, #00a884 220px, var(--bg-app) 220px, var(--bg-app) 100%);
+  background: linear-gradient(180deg, #0084ff 0%, #0084ff 220px, var(--bg-app) 220px, var(--bg-app) 100%);
   padding: 20px;
 }
 

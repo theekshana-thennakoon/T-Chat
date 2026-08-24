@@ -263,12 +263,21 @@
                 <div class="tile-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
                 <div class="tile-text">
                   <h5>Sync Phonebook Contacts</h5>
-                  <p>Uses Web Contacts API</p>
+                  <p>Web Contacts API (Mobile)</p>
                 </div>
               </button>
 
+              <label for="input-vcf-file" class="action-tile" style="cursor: pointer;">
+                <div class="tile-icon" style="background-color: #027eb5;"><i class="fa-solid fa-file-import"></i></div>
+                <div class="tile-text">
+                  <h5>Import .VCF / vCard File</h5>
+                  <p>Exported phone contacts file</p>
+                </div>
+              </label>
+              <input type="file" id="input-vcf-file" accept=".vcf,.vcard" class="hidden">
+
               <button id="btn-add-manual-contact" class="action-tile">
-                <div class="tile-icon"><i class="fa-solid fa-user-plus"></i></div>
+                <div class="tile-icon" style="background-color: #202c33;"><i class="fa-solid fa-user-plus"></i></div>
                 <div class="tile-text">
                   <h5>Add New Contact</h5>
                   <p>Add via phone number</p>
