@@ -875,7 +875,40 @@ input:checked + .slider:before {
   align-items: flex-end;
   gap: 8px;
   max-width: 75%;
+  position: relative;
+  touch-action: pan-y;
+  user-select: none;
+  will-change: transform;
 }
+
+/* Swipe to Reply / Mention Indicator */
+.swipe-reply-indicator {
+  position: absolute;
+  left: -42px;
+  top: 50%;
+  transform: translateY(-50%) scale(0.7);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: var(--accent-green);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  opacity: 0.5;
+  transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.swipe-reply-indicator.active {
+  opacity: 1;
+  transform: translateY(-50%) scale(1.15);
+  background-color: #008f70;
+  box-shadow: 0 2px 12px rgba(0, 168, 132, 0.5);
+}
+
 .message-row.out {
   align-self: flex-end;
   flex-direction: row-reverse;

@@ -559,6 +559,9 @@ const ChatModule = {
       `;
     }).join('');
 
+    // Bind touch and drag swipe-to-reply events
+    this.bindMessageSwipeEvents(container);
+
     // Scroll to bottom
     container.scrollTop = container.scrollHeight;
   },
@@ -581,6 +584,132 @@ const ChatModule = {
       const txtInput = document.getElementById('message-input');
       if (txtInput) txtInput.focus();
     }
+  },
+
+  bindMessageSwipeEvents(container) {
+    const rows = container.querySelectorAll('.message-row');
+    rows.forEach(row => {
+      const bubble = row.querySelector('.message-bubble');
+      if (!bubble) return;
+      const msgId = bubble.id;
+      if (!msgId) return;
+
+      let startX = 0;
+      let startY = 0;
+      let currentX = 0;
+      let isSwiping = false;
+      let swipeIcon = null;
+
+      // Touch gesture listeners (Mobile)
+      row.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        currentX = 0;
+        isSwiping = false;
+      }, { passive: true });
+
+      row.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 1) return;
+        const diffX = e.touches[0].clientX - startX;
+        const diffY = e.touches[0].clientY - startY;
+
+        // Slide right gesture to mention/quote message
+        if (diffX > 10 && Math.abs(diffX) > Math.abs(diffY)) {
+          isSwiping = true;
+          currentX = Math.min(diffX * 0.5, 75); // Dampened spring resistance
+
+          if (!swipeIcon) {
+            swipeIcon = document.createElement('div');
+            swipeIcon.className = 'swipe-reply-indicator';
+            swipeIcon.innerHTML = '<i class="fa-solid fa-reply"></i>';
+            row.insertBefore(swipeIcon, row.firstChild);
+          }
+
+          row.style.transform = `translateX(${currentX}px)`;
+          row.style.transition = 'none';
+
+          if (currentX > 32) {
+            swipeIcon.classList.add('active');
+          } else {
+            swipeIcon.classList.remove('active');
+          }
+        }
+      }, { passive: true });
+
+      const resetTouchSwipe = () => {
+        if (isSwiping) {
+          row.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+          row.style.transform = 'translateX(0)';
+
+          if (currentX > 32) {
+            this.quoteMessage(msgId);
+          }
+
+          setTimeout(() => {
+            if (swipeIcon && swipeIcon.parentNode) {
+              swipeIcon.parentNode.removeChild(swipeIcon);
+            }
+            swipeIcon = null;
+            row.style.transform = '';
+            row.style.transition = '';
+          }, 250);
+        }
+        isSwiping = false;
+      };
+
+      row.addEventListener('touchend', resetTouchSwipe);
+      row.addEventListener('touchcancel', resetTouchSwipe);
+
+      // Mouse drag gesture listeners (Desktop drag-to-reply)
+      let isMouseDown = false;
+
+      row.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        isMouseDown = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        currentX = 0;
+        isSwiping = false;
+      });
+
+      row.addEventListener('mousemove', (e) => {
+        if (!isMouseDown) return;
+        const diffX = e.clientX - startX;
+        const diffY = e.clientY - startY;
+
+        if (diffX > 12 && Math.abs(diffX) > Math.abs(diffY)) {
+          isSwiping = true;
+          currentX = Math.min(diffX * 0.5, 75);
+
+          if (!swipeIcon) {
+            swipeIcon = document.createElement('div');
+            swipeIcon.className = 'swipe-reply-indicator';
+            swipeIcon.innerHTML = '<i class="fa-solid fa-reply"></i>';
+            row.insertBefore(swipeIcon, row.firstChild);
+          }
+
+          row.style.transform = `translateX(${currentX}px)`;
+          row.style.transition = 'none';
+
+          if (currentX > 32) {
+            swipeIcon.classList.add('active');
+          } else {
+            swipeIcon.classList.remove('active');
+          }
+        }
+      });
+
+      const endMouseSwipe = () => {
+        if (isMouseDown) {
+          isMouseDown = false;
+          resetTouchSwipe();
+        }
+      };
+
+      row.addEventListener('mouseup', endMouseSwipe);
+      row.addEventListener('mouseleave', endMouseSwipe);
+    });
   },
 
   scrollToMessage(msgId) {
