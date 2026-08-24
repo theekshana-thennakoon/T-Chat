@@ -53,17 +53,17 @@
   }
 
   .tab-pane {
-    padding-bottom: 60px;
+    padding-bottom: 120px;
   }
 
-  /* Floating Action Button (FAB) position on Mobile higher above bottom navigation bar */
+  /* Floating Action Button (FAB) position on Mobile significantly higher so Profile tab is fully accessible */
   .fab-new-chat-btn {
-    bottom: 96px;
+    bottom: 130px;
     right: 20px;
-    width: 56px;
-    height: 56px;
+    width: 54px;
+    height: 54px;
     font-size: 1.3rem;
-    z-index: 45;
+    z-index: 35;
     box-shadow: 0 4px 18px rgba(0, 168, 132, 0.55);
   }
 
