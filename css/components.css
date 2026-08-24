@@ -220,11 +220,37 @@
 }
 
 .brand-icon {
-  font-size: 1.6rem;
-  color: var(--accent-green);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.app-logo-img {
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 168, 132, 0.35);
+  transition: transform 0.25 ease;
+}
+
+.header-logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+}
+
+.splash-logo-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 168, 132, 0.5);
+  animation: splashPulse 2s ease-in-out infinite;
+}
+
+.auth-logo-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0, 168, 132, 0.4);
 }
 
 .brand-title {
