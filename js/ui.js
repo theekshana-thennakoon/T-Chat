@@ -67,6 +67,164 @@ const UIModule = {
     this.bindSettings();
     this.bindModals();
     this.bindSecurityProtection();
+    this.bindContextMenuAndLongPress();
+  },
+
+  bindContextMenuAndLongPress() {
+    const menu = document.getElementById('custom-context-menu');
+    const itemCopy = document.getElementById('context-action-copy');
+    const itemPaste = document.getElementById('context-action-paste');
+
+    let currentTargetMsgText = '';
+    let currentTargetInput = null;
+
+    const hideContextMenu = () => {
+      if (menu) menu.classList.add('hidden');
+    };
+
+    window.addEventListener('click', hideContextMenu);
+    window.addEventListener('scroll', hideContextMenu, true);
+
+    const showContextMenuAt = (x, y, showCopy, showPaste, msgText, inputEl) => {
+      if (!menu) return;
+
+      currentTargetMsgText = msgText || '';
+      currentTargetInput = inputEl || null;
+
+      if (showCopy) itemCopy.classList.remove('hidden');
+      else itemCopy.classList.add('hidden');
+
+      if (showPaste) itemPaste.classList.remove('hidden');
+      else itemPaste.classList.add('hidden');
+
+      if (!showCopy && !showPaste) {
+        hideContextMenu();
+        return;
+      }
+
+      const menuWidth = 175;
+      const menuHeight = 90;
+      const posX = Math.min(x, window.innerWidth - menuWidth - 10);
+      const posY = Math.min(y, window.innerHeight - menuHeight - 10);
+
+      menu.style.left = `${posX}px`;
+      menu.style.top = `${posY}px`;
+      menu.classList.remove('hidden');
+    };
+
+    // 1. Desktop / Laptop Right Click Listener
+    window.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // Disable default context menu globally
+
+      const messageBubble = e.target.closest('.message-bubble') || e.target.closest('.message-row');
+      const inputEl = e.target.closest('input, textarea');
+
+      if (messageBubble) {
+        const textP = messageBubble.querySelector('p');
+        const textQuote = messageBubble.querySelector('.quote-body-text');
+        const msgText = textP ? textP.textContent : (textQuote ? textQuote.textContent : messageBubble.textContent);
+        
+        showContextMenuAt(e.clientX, e.clientY, true, false, msgText, null);
+      } else if (inputEl) {
+        showContextMenuAt(e.clientX, e.clientY, false, true, '', inputEl);
+      } else {
+        hideContextMenu();
+      }
+    });
+
+    // 2. Mobile Touch Long-Press Listener (450ms hold)
+    let longPressTimer = null;
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      const target = touch.target;
+
+      longPressTimer = setTimeout(() => {
+        const messageBubble = target.closest('.message-bubble') || target.closest('.message-row');
+        const inputEl = target.closest('input, textarea');
+
+        if (messageBubble || inputEl) {
+          if (messageBubble) {
+            const textP = messageBubble.querySelector('p');
+            const textQuote = messageBubble.querySelector('.quote-body-text');
+            const msgText = textP ? textP.textContent : (textQuote ? textQuote.textContent : messageBubble.textContent);
+            showContextMenuAt(touch.clientX, touch.clientY, true, false, msgText, null);
+          } else if (inputEl) {
+            showContextMenuAt(touch.clientX, touch.clientY, false, true, '', inputEl);
+          }
+        }
+      }, 450);
+    }, { passive: true });
+
+    window.addEventListener('touchmove', () => {
+      if (longPressTimer) clearTimeout(longPressTimer);
+    });
+
+    window.addEventListener('touchend', () => {
+      if (longPressTimer) clearTimeout(longPressTimer);
+    });
+
+    // 3. Bind Copy Action
+    if (itemCopy) {
+      itemCopy.onclick = (e) => {
+        e.stopPropagation();
+        hideContextMenu();
+        if (currentTargetMsgText) {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(currentTargetMsgText).then(() => {
+              window.showToast('Message copied to clipboard!', 'success');
+            }).catch(() => {
+              this.fallbackCopyText(currentTargetMsgText);
+            });
+          } else {
+            this.fallbackCopyText(currentTargetMsgText);
+          }
+        }
+      };
+    }
+
+    // 4. Bind Paste Action
+    if (itemPaste) {
+      itemPaste.onclick = async (e) => {
+        e.stopPropagation();
+        hideContextMenu();
+        if (currentTargetInput) {
+          currentTargetInput.focus();
+          try {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+              const text = await navigator.clipboard.readText();
+              if (text) {
+                const start = currentTargetInput.selectionStart || currentTargetInput.value.length;
+                const end = currentTargetInput.selectionEnd || currentTargetInput.value.length;
+                const val = currentTargetInput.value;
+                currentTargetInput.value = val.substring(0, start) + text + val.substring(end);
+                currentTargetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                window.showToast('Pasted from clipboard!', 'success');
+              }
+            } else {
+              window.showToast('Use Ctrl+V to paste', 'info');
+            }
+          } catch (err) {
+            window.showToast('Use Ctrl+V to paste', 'info');
+          }
+        }
+      };
+    }
+  },
+
+  fallbackCopyText(text) {
+    const txtArea = document.createElement('textarea');
+    txtArea.value = text;
+    document.body.appendChild(txtArea);
+    txtArea.select();
+    try {
+      document.execCommand('copy');
+      window.showToast('Message copied to clipboard!', 'success');
+    } catch (err) {
+      window.showToast('Could not copy message', 'error');
+    }
+    document.body.removeChild(txtArea);
   },
 
   bindSecurityProtection() {

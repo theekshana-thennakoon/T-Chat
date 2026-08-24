@@ -1963,5 +1963,62 @@ input:checked + .slider:before {
   transform: scale(1.1);
 }
 
+/* --------------------------------------------------------------------------
+   14. CUSTOM CONTEXT MENU (COPY / PASTE)
+   -------------------------------------------------------------------------- */
+.custom-context-menu {
+  position: fixed;
+  z-index: 99999999;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 165px;
+  opacity: 1;
+  transform: scale(1);
+  transform-origin: top left;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.custom-context-menu.hidden {
+  display: none !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.context-menu-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--accent-green);
+}
+
+.context-menu-item i {
+  font-size: 1rem;
+  color: var(--accent-green);
+  width: 20px;
+  text-align: center;
+}
+
+.context-menu-item.hidden {
+  display: none !important;
+}
+
+
 
 
