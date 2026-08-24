@@ -185,6 +185,19 @@ const ChatModule = {
     }
   },
 
+  getChatRoomId(contact) {
+    if (!contact) return '';
+    const myUser = window.AppConfig.currentUser || {};
+    
+    // Normalize phone numbers or fallback to UIDs
+    const myKey = (myUser.phone ? myUser.phone.replace(/\D/g, '') : '') || myUser.uid || 'me';
+    const contactKey = (contact.phone ? contact.phone.replace(/\D/g, '') : '') || contact.uid || contact.id;
+
+    // Alphabetically sort the two keys so both Sender and Receiver generate the EXACT same room ID
+    const roomKey = [myKey, contactKey].sort().join('_');
+    return 'room_' + roomKey;
+  },
+
   openConversation(contact) {
     this.activeContact = contact;
     
@@ -220,25 +233,32 @@ const ChatModule = {
       }).catch(() => {});
     }
 
-    this.loadMessagesForContact(contact.id);
+    this.loadMessagesForContact(contact);
     this.renderChatsList();
   },
 
-  loadMessagesForContact(contactId) {
-    if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
-      // Live Firestore Snapshot listener
-      if (this.firestoreListener) this.firestoreListener();
+  loadMessagesForContact(contact) {
+    if (!contact) return;
+    const contactId = typeof contact === 'object' ? contact.id : contact;
+    const contactObj = typeof contact === 'object' ? contact : (window.ContactsModule ? window.ContactsModule.contacts.find(c => c.id === contactId) : null);
+    
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db && contactObj) {
+      const chatId = this.getChatRoomId(contactObj);
       
-      const chatId = this.getChatRoomId(window.AppConfig.currentUser.uid, contactId);
-      this.firestoreListener = window.AppConfig.db.collection('chats').doc(chatId)
+      // Live Firestore Snapshot listener for this chat room
+      window.AppConfig.db.collection('chats').doc(chatId)
         .collection('messages')
         .orderBy('timestamp', 'asc')
         .onSnapshot(snapshot => {
           const list = [];
           snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
           this.messages[contactId] = list;
-          this.renderMessages();
-        });
+
+          if (this.activeContact && this.activeContact.id === contactId) {
+            this.renderMessages();
+          }
+          this.renderChatsList();
+        }, err => console.warn('Messages snapshot listener notice:', err));
     } else {
       // Mock DB local storage
       const saved = MockDB.get('messages_' + contactId, null);
@@ -246,9 +266,10 @@ const ChatModule = {
         this.messages[contactId] = saved;
       } else {
         this.messages[contactId] = [];
-        MockDB.set('messages_' + contactId, this.messages[contactId]);
       }
-      this.renderMessages();
+      if (this.activeContact && this.activeContact.id === contactId) {
+        this.renderMessages();
+      }
     }
   },
 
@@ -267,13 +288,62 @@ const ChatModule = {
     document.getElementById('emoji-picker-container').classList.add('hidden');
   },
 
+  listenToAllUserChats() {
+    if (!window.AppConfig.isLiveFirebase || !window.AppConfig.db || !window.AppConfig.currentUser) return;
+
+    const myUid = window.AppConfig.currentUser.uid;
+    const myPhoneClean = window.AppConfig.currentUser.phone ? window.AppConfig.currentUser.phone.replace(/\D/g, '') : '';
+
+    const searchKeys = [myUid, myPhoneClean].filter(Boolean);
+    if (searchKeys.length === 0) return;
+
+    // Listen to all chat rooms where current user is a participant
+    window.AppConfig.db.collection('chats')
+      .where('participants', 'array-contains-any', searchKeys)
+      .onSnapshot(snapshot => {
+        snapshot.forEach(doc => {
+          const roomData = doc.data();
+          if (roomData && window.ContactsModule) {
+            const parts = roomData.participants || [];
+            const otherKey = parts.find(p => p !== myUid && p !== myPhoneClean);
+
+            if (otherKey) {
+              let existingContact = window.ContactsModule.contacts.find(c => {
+                const cClean = c.phone ? c.phone.replace(/\D/g, '') : c.id;
+                return cClean === otherKey || c.phone === otherKey || c.id === otherKey || c.id === roomData.senderUid;
+              });
+
+              if (!existingContact) {
+                // Auto-create contact entry for receiver so conversation displays in sidebar
+                const displayName = roomData.senderName || ('User ' + otherKey);
+                const phoneNum = (typeof otherKey === 'string' && !otherKey.startsWith('+') && !otherKey.startsWith('user_')) ? ('+' + otherKey) : otherKey;
+                window.ContactsModule.addContact(displayName, phoneNum);
+                existingContact = window.ContactsModule.contacts.find(c => c.phone.replace(/\D/g, '') === otherKey);
+              }
+
+              if (existingContact) {
+                this.loadMessagesForContact(existingContact);
+              }
+            }
+          }
+        });
+        this.renderChatsList();
+      }, err => console.warn('Global user chats listener notice:', err));
+  },
+
   sendMessage(payload) {
     if (!this.activeContact) return;
 
     const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
+    const myPhone = window.AppConfig.currentUser ? window.AppConfig.currentUser.phone : '';
+    const myPhoneClean = myPhone ? myPhone.replace(/\D/g, '') : myUid;
+
+    const contactPhoneClean = this.activeContact.phone ? this.activeContact.phone.replace(/\D/g, '') : (this.activeContact.uid || this.activeContact.id);
+
     const msgObj = {
       id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       sender: myUid,
+      senderPhone: myPhone,
       type: payload.type || 'text',
       text: payload.text || '',
       mediaUrl: payload.mediaUrl || null,
@@ -286,7 +356,6 @@ const ChatModule = {
 
     const contactId = this.activeContact.id;
     if (!this.messages[contactId]) this.messages[contactId] = [];
-    this.messages[contactId].push(msgObj);
 
     // Play Sound
     if (window.SoundManager) {
@@ -294,9 +363,23 @@ const ChatModule = {
     }
 
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
-      const chatId = this.getChatRoomId(myUid, contactId);
+      const chatId = this.getChatRoomId(this.activeContact);
+      
+      // 1. Save room-level metadata so receiver's device discovers the chat
+      window.AppConfig.db.collection('chats').doc(chatId).set({
+        chatId: chatId,
+        participants: [myPhoneClean, contactPhoneClean, myUid, this.activeContact.uid || ''].filter(Boolean),
+        lastMessage: payload.text || (payload.type === 'image' ? '📷 Photo' : '🎤 Voice note'),
+        lastTimestamp: msgObj.timestamp,
+        senderUid: myUid,
+        senderPhone: myPhoneClean,
+        senderName: window.AppConfig.currentUser ? window.AppConfig.currentUser.name : 'TChat User'
+      }, { merge: true });
+
+      // 2. Save message document
       window.AppConfig.db.collection('chats').doc(chatId).collection('messages').doc(msgObj.id).set(msgObj);
     } else {
+      this.messages[contactId].push(msgObj);
       MockDB.set('messages_' + contactId, this.messages[contactId]);
       this.renderMessages();
     }
@@ -309,11 +392,14 @@ const ChatModule = {
     const container = document.getElementById('chat-messages-container');
     if (!container || !this.activeContact) return;
 
-    const list = this.messages[this.activeContact.id] || [];
+    const msgs = this.messages[this.activeContact.id] || [];
     const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
+    const myPhone = window.AppConfig.currentUser ? window.AppConfig.currentUser.phone : '';
+    const myCleanPhone = myPhone ? myPhone.replace(/\D/g, '') : '';
 
-    container.innerHTML = list.map(m => {
-      const isOut = m.sender === myUid;
+    container.innerHTML = msgs.map(m => {
+      const msgSenderClean = m.senderPhone ? m.senderPhone.replace(/\D/g, '') : '';
+      const isOut = (m.sender === myUid) || (myPhone && m.senderPhone === myPhone) || (myCleanPhone && msgSenderClean === myCleanPhone);
       const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       
       let checkHtml = '';
@@ -331,7 +417,7 @@ const ChatModule = {
       if (m.quote) {
         quoteHtml = `
           <div class="message-quote">
-            <span class="quote-author-name">${m.quote.sender === myUid ? 'You' : this.activeContact.name}</span>
+            <span class="quote-author-name">${isOut ? 'You' : this.activeContact.name}</span>
             <div class="quote-body-text">${m.quote.text || 'Media message'}</div>
           </div>
         `;
@@ -462,17 +548,14 @@ const ChatModule = {
 
   loadAllChats() {
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db && window.AppConfig.currentUser) {
+      this.listenToAllUserChats();
       if (window.ContactsModule && window.ContactsModule.contacts) {
         window.ContactsModule.contacts.forEach(c => {
-          this.loadMessagesForContact(c.id);
+          this.loadMessagesForContact(c);
         });
       }
     }
     this.renderChatsList();
-  },
-
-  getChatRoomId(uid1, uid2) {
-    return [uid1, uid2].sort().join('_');
   },
 
   escapeHtml(str) {
