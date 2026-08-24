@@ -158,9 +158,6 @@
           </div>
 
           <div class="header-actions">
-            <button class="icon-btn" id="btn-open-contacts-modal" title="New Chat / Contacts">
-              <i class="fa-solid fa-user-plus"></i>
-            </button>
             <button class="icon-btn" id="btn-open-menu" title="Menu">
               <i class="fa-solid fa-ellipsis-vertical"></i>
             </button>
@@ -202,7 +199,7 @@
         </div>
 
         <!-- TAB CONTENT 1: CHATS LIST -->
-        <div id="tab-content-chats" class="tab-pane active">
+        <div id="tab-content-chats" class="tab-pane active" style="position: relative;">
           <div id="chats-list" class="chats-list">
             <!-- Dynamic Chat Items render here -->
           </div>
@@ -213,6 +210,11 @@
               <i class="fa-solid fa-plus"></i> Start a Chat
             </button>
           </div>
+
+          <!-- Floating Action Button (FAB) for New Chat in bottom right -->
+          <button id="btn-open-contacts-modal" class="fab-new-chat-btn" title="Start New Chat">
+            <i class="fa-solid fa-message"></i>
+          </button>
         </div>
 
         <!-- TAB CONTENT 2: STATUS TAB -->
