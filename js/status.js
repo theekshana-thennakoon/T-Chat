@@ -109,35 +109,10 @@ const StatusModule = {
 
   loadStatuses() {
     const saved = MockDB.get('app_statuses', null);
-    if (saved && saved.length > 0) {
+    if (saved && Array.isArray(saved)) {
       this.statuses = saved;
     } else {
-      // Initial sample statuses seed (within 24 hours)
-      const now = Date.now();
-      this.statuses = [
-        {
-          id: 'status_demo_1',
-          userId: 'contact_sarah',
-          userName: 'Sarah Jenkins',
-          userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=sarah',
-          type: 'text',
-          text: 'Weekend getaway trip! 🌲⛰️ Exciting times ahead.',
-          bgClass: 'bg-color-1',
-          timestamp: new Date(now - 7200000).toISOString(),
-          views: []
-        },
-        {
-          id: 'status_demo_2',
-          userId: 'contact_michael',
-          userName: 'Michael Scott',
-          userAvatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=michael',
-          type: 'text',
-          text: 'Should have burned this place down when I had the chance 🔥☕',
-          bgClass: 'bg-color-2',
-          timestamp: new Date(now - 14400000).toISOString(),
-          views: []
-        }
-      ];
+      this.statuses = [];
       this.saveStatuses();
     }
 

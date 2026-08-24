@@ -158,28 +158,10 @@ const ChatModule = {
     } else {
       // Mock DB local storage
       const saved = MockDB.get('messages_' + contactId, null);
-      if (saved) {
+      if (saved && Array.isArray(saved)) {
         this.messages[contactId] = saved;
       } else {
-        // Sample conversation seed
-        this.messages[contactId] = [
-          {
-            id: 'msg_1',
-            sender: contactId,
-            text: `Hey there! Glad to connect on TChat. 👋`,
-            type: 'text',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            status: 'read'
-          },
-          {
-            id: 'msg_2',
-            sender: window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me',
-            text: `Hi ${this.activeContact.name}, everything looks awesome!`,
-            type: 'text',
-            timestamp: new Date(Date.now() - 1800000).toISOString(),
-            status: 'read'
-          }
-        ];
+        this.messages[contactId] = [];
         MockDB.set('messages_' + contactId, this.messages[contactId]);
       }
       this.renderMessages();
@@ -237,43 +219,6 @@ const ChatModule = {
 
     this.clearQuote();
     this.renderChatsList();
-
-    // Trigger auto-reply in demo mode after 1.5 seconds
-    if (!window.AppConfig.isLiveFirebase) {
-      setTimeout(() => this.triggerDemoReply(contactId, payload.text), 1500);
-    }
-  },
-
-  triggerDemoReply(contactId, userText) {
-    if (this.activeContact && this.activeContact.id === contactId) {
-      const replies = [
-        "Sounds great! Thanks for sharing. 👍",
-        "Got it! Let me review this in a moment.",
-        "Awesome! How is everything else going?",
-        "Haha that's really cool! 😄",
-        "Sure thing, talk to you soon!"
-      ];
-      const randomReply = replies[Math.floor(Math.random() * replies.length)];
-
-      const replyObj = {
-        id: 'msg_reply_' + Date.now(),
-        sender: contactId,
-        type: 'text',
-        text: randomReply,
-        timestamp: new Date().toISOString(),
-        status: 'read'
-      };
-
-      this.messages[contactId].push(replyObj);
-      MockDB.set('messages_' + contactId, this.messages[contactId]);
-
-      if (window.SoundManager) {
-        window.SoundManager.playReceive();
-      }
-
-      this.renderMessages();
-      this.renderChatsList();
-    }
   },
 
   renderMessages() {

@@ -105,41 +105,10 @@ const ContactsModule = {
 
   loadContacts() {
     const saved = MockDB.get('user_contacts', null);
-    if (saved && saved.length > 0) {
+    if (saved && Array.isArray(saved)) {
       this.contacts = saved;
     } else {
-      // Seed initial sample contacts for demo user
-      this.contacts = [
-        {
-          id: 'contact_sarah',
-          name: 'Sarah Jenkins',
-          phone: '+91 9876543211',
-          avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=sarah',
-          about: 'Living my best life 🌟'
-        },
-        {
-          id: 'contact_michael',
-          name: 'Michael Scott',
-          phone: '+91 9876543212',
-          avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=michael',
-          about: 'World\'s Best Boss ☕'
-        },
-        {
-          id: 'contact_priya',
-          name: 'Priya Sharma',
-          phone: '+91 9876543213',
-          avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=priya',
-          about: 'In a meeting 💻'
-        },
-        {
-          id: 'contact_dev_team',
-          name: 'Web Dev Group 🚀',
-          phone: '+91 9876543299',
-          avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=devteam',
-          about: 'React, Vue & HTML5 discussions',
-          isGroup: true
-        }
-      ];
+      this.contacts = [];
       this.saveContacts();
     }
 
