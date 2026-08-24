@@ -123,6 +123,30 @@ const ChatModule = {
     }
   },
 
+  formatLastSeen(timestamp) {
+    if (!timestamp) return 'last seen recently';
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'last seen recently';
+
+    const now = new Date();
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    const isToday = date.toDateString() === now.toDateString();
+    
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    if (isToday) {
+      return `last seen today at ${timeStr}`;
+    } else if (isYesterday) {
+      return `last seen yesterday at ${timeStr}`;
+    } else {
+      const dateStr = date.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+      return `last seen ${dateStr} at ${timeStr}`;
+    }
+  },
+
   openConversation(contact) {
     this.activeContact = contact;
     
@@ -134,7 +158,29 @@ const ChatModule = {
     // Header Meta
     document.getElementById('chat-contact-avatar').src = contact.avatar;
     document.getElementById('chat-contact-name').textContent = contact.name;
-    document.getElementById('chat-contact-status').textContent = contact.online ? 'online' : 'last seen recently';
+    
+    const statusEl = document.getElementById('chat-contact-status');
+    if (contact.online) {
+      statusEl.textContent = 'online';
+    } else if (contact.lastSeen) {
+      statusEl.textContent = this.formatLastSeen(contact.lastSeen);
+    } else {
+      statusEl.textContent = 'last seen recently';
+    }
+
+    // Query Firestore for real-time online/lastSeen state
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db && contact.phone) {
+      window.AppConfig.db.collection('users').where('phone', '==', contact.phone).get().then(snap => {
+        if (!snap.empty) {
+          const uData = snap.docs[0].data();
+          if (uData.online) {
+            statusEl.textContent = 'online';
+          } else if (uData.lastSeen) {
+            statusEl.textContent = this.formatLastSeen(uData.lastSeen);
+          }
+        }
+      }).catch(() => {});
+    }
 
     this.loadMessagesForContact(contact.id);
     this.renderChatsList();
