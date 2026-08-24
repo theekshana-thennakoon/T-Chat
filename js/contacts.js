@@ -219,6 +219,10 @@ const ContactsModule = {
         </div>
       </div>
     `).join('');
+
+    if (window.ChatModule) {
+      window.ChatModule.renderChatsList();
+    }
   },
 
   startChatWithContact(contactId) {

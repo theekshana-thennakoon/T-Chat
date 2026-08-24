@@ -5,22 +5,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   console.log('🚀 Initializing TChat Web & Mobile Application...');
 
-  // 1. Initialize Backend & Config
-  window.initBackendServices();
-
-  // 2. Initialize UI Module
-  if (window.UIModule) {
-    window.UIModule.init();
-  }
-
-  // 3. Initialize Auth Module
-  if (window.AuthModule) {
-    window.AuthModule.init();
-  }
-
-  // 4. Callback when user is logged in
+  // 1. Callback when user is logged in
   window.onAppReady = (user) => {
-    console.log('👤 User authenticated:', user.name);
+    console.log('👤 User authenticated:', user ? user.name : 'Active Session');
 
     if (window.ContactsModule) {
       window.ContactsModule.init();
@@ -34,4 +21,17 @@ document.addEventListener('DOMContentLoaded', () => {
       window.StatusModule.init();
     }
   };
+
+  // 2. Initialize Backend & Config
+  window.initBackendServices();
+
+  // 3. Initialize UI Module
+  if (window.UIModule) {
+    window.UIModule.init();
+  }
+
+  // 4. Initialize Auth Module (Will trigger checkSession & onAppReady)
+  if (window.AuthModule) {
+    window.AuthModule.init();
+  }
 });
