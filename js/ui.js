@@ -66,6 +66,49 @@ const UIModule = {
     this.bindNavigation();
     this.bindSettings();
     this.bindModals();
+    this.bindSecurityProtection();
+  },
+
+  bindSecurityProtection() {
+    window.addEventListener('keydown', (e) => {
+      const key = e.key ? e.key.toLowerCase() : '';
+      const code = e.code ? e.code.toLowerCase() : '';
+      
+      // Prevent Ctrl+U (View Page Source)
+      if ((e.ctrlKey || e.metaKey) && (key === 'u' || code === 'keyu')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Prevent Ctrl+Shift+I (Open DevTools Inspect Element)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'i' || code === 'keyi')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Prevent Ctrl+Shift+J (Open DevTools Console)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'j' || code === 'keyj')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Prevent Ctrl+Shift+C (Inspect Element Picker)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (key === 'c' || code === 'keyc')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+
+      // Prevent F12 (Open DevTools)
+      if (key === 'f12' || e.keyCode === 123) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    }, true);
   },
 
   bindNavigation() {
