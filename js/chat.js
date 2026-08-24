@@ -511,7 +511,7 @@ const ChatModule = {
 
       let bodyHtml = '';
       if (m.type === 'image') {
-        bodyHtml = `<img src="${m.mediaUrl}" class="message-image" alt="Uploaded photo">`;
+        bodyHtml = `<img src="${m.mediaUrl}" class="message-image" alt="Uploaded photo" onclick="event.stopPropagation(); ChatModule.openImageLightbox('${m.mediaUrl}')" title="Click to view full size photo">`;
       } else if (m.type === 'voice') {
         bodyHtml = `
           <div class="voice-note-player">
@@ -797,6 +797,16 @@ const ChatModule = {
     if (url) {
       const audio = new Audio(url);
       audio.play();
+    }
+  },
+
+  openImageLightbox(imgSrc) {
+    if (!imgSrc) return;
+    const modal = document.getElementById('image-lightbox-modal');
+    const img = document.getElementById('lightbox-full-img');
+    if (modal && img) {
+      img.src = imgSrc;
+      modal.classList.add('active');
     }
   },
 

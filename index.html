@@ -680,6 +680,16 @@
       </div>
     </div>
 
+    <!-- FULLSCREEN IMAGE LIGHTBOX MODAL -->
+    <div id="image-lightbox-modal" class="modal image-lightbox-modal" onclick="if(event.target === this) this.classList.remove('active')">
+      <div class="lightbox-content">
+        <button class="lightbox-close-btn" id="btn-close-lightbox" onclick="document.getElementById('image-lightbox-modal').classList.remove('active')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <img id="lightbox-full-img" src="" alt="Full size photo preview">
+      </div>
+    </div>
+
     <!-- GLOBAL TOAST NOTIFICATIONS CONTAINER (TOP-RIGHT) -->
     <div id="toast-container" class="toast-container"></div>
 
