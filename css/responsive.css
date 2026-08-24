@@ -56,15 +56,25 @@
     padding-bottom: 120px;
   }
 
-  /* Floating Action Button (FAB) position on Mobile significantly higher so Profile tab is fully accessible */
+  /* Floating Action Button (FAB) position on Mobile fixed and elevated cleanly above bottom tabs */
   .fab-new-chat-btn {
-    bottom: 130px;
-    right: 20px;
-    width: 54px;
-    height: 54px;
-    font-size: 1.3rem;
-    z-index: 35;
-    box-shadow: 0 4px 18px rgba(0, 168, 132, 0.55);
+    position: fixed !important;
+    bottom: 84px !important;
+    right: 20px !important;
+    left: auto !important;
+    margin-bottom: 24px !important;
+    width: 56px !important;
+    height: 56px !important;
+    font-size: 1.35rem !important;
+    z-index: 100 !important;
+    display: flex !important;
+    visibility: visible !important;
+    box-shadow: 0 6px 20px rgba(0, 168, 132, 0.6) !important;
+  }
+
+  /* Hide FAB when active chat conversation screen is open on mobile */
+  .app-container.chat-active .fab-new-chat-btn {
+    display: none !important;
   }
 
   .tab-btn {

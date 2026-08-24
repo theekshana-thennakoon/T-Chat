@@ -315,8 +315,8 @@
   position: absolute;
   bottom: 24px;
   right: 20px;
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--accent-green);
   color: #ffffff;
@@ -325,16 +325,20 @@
   align-items: center;
   justify-content: center;
   font-size: 1.35rem;
-  box-shadow: 0 4px 14px rgba(0, 168, 132, 0.4);
+  box-shadow: 0 4px 16px rgba(0, 168, 132, 0.45);
   cursor: pointer;
-  z-index: 25;
+  z-index: 99;
   transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+#tab-content-chats:not(.active) .fab-new-chat-btn {
+  display: none !important;
 }
 
 .fab-new-chat-btn:hover {
   transform: scale(1.08);
   background: #009677;
-  box-shadow: 0 6px 18px rgba(0, 168, 132, 0.55);
+  box-shadow: 0 6px 20px rgba(0, 168, 132, 0.6);
 }
 
 .fab-new-chat-btn:active {
