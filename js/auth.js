@@ -291,15 +291,64 @@ const AuthModule = {
     this.onAuthenticated(demoUid, demoPhone);
   },
 
+  populateProfileStep(data) {
+    if (!data) return;
+    const nameInput = document.getElementById('profile-name-input');
+    const aboutInput = document.getElementById('profile-about-input');
+    const avatarImg = document.getElementById('profile-avatar-img');
+
+    if (nameInput) nameInput.value = data.name || '';
+    if (aboutInput) aboutInput.value = data.about || 'Hey there! I am using TChat.';
+    if (avatarImg && data.avatar) avatarImg.src = data.avatar;
+  },
+
   onAuthenticated(uid, phone) {
-    let existingUser = MockDB.get('user_profile_' + uid, null);
-    if (!existingUser) {
-      // Prompt profile step
-      this.currentUid = uid;
-      this.currentPhone = phone;
-      this.switchStep('auth-step-profile');
+    this.currentUid = uid;
+    this.currentPhone = phone;
+
+    // Check Firestore users collection first if live Firebase is active
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
+      window.AppConfig.db.collection('users').doc(uid).get().then(doc => {
+        if (doc.exists) {
+          const profileData = doc.data();
+          this.populateProfileStep(profileData);
+          this.completeLogin(profileData);
+        } else {
+          // Query by phone number
+          window.AppConfig.db.collection('users').where('phone', '==', phone).get().then(querySnap => {
+            if (!querySnap.empty) {
+              const profileData = querySnap.docs[0].data();
+              this.populateProfileStep(profileData);
+              this.completeLogin(profileData);
+            } else {
+              // Brand new user: prompt profile setup
+              this.populateProfileStep({
+                name: '',
+                about: 'Hey there! I am using TChat.',
+                avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + uid
+              });
+              this.switchStep('auth-step-profile');
+            }
+          }).catch(() => {
+            this.switchStep('auth-step-profile');
+          });
+        }
+      }).catch(() => {
+        this.switchStep('auth-step-profile');
+      });
     } else {
-      this.completeLogin(existingUser);
+      let existingUser = MockDB.get('user_profile_' + uid, null);
+      if (existingUser) {
+        this.populateProfileStep(existingUser);
+        this.completeLogin(existingUser);
+      } else {
+        this.populateProfileStep({
+          name: '',
+          about: 'Hey there! I am using TChat.',
+          avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + uid
+        });
+        this.switchStep('auth-step-profile');
+      }
     }
   },
 
