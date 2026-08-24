@@ -20,17 +20,20 @@ const ChatModule = {
     
     if (txtInput) {
       txtInput.addEventListener('input', (e) => {
-        const text = e.target.value.trim();
+        const text = e.target.value;
         const iconMic = document.getElementById('icon-mic');
         const iconSend = document.getElementById('icon-send');
         
-        if (text.length > 0) {
+        if (text.trim().length > 0) {
           iconMic.classList.add('hidden');
           iconSend.classList.remove('hidden');
         } else {
           iconMic.classList.remove('hidden');
           iconSend.classList.add('hidden');
         }
+
+        // Mention Trigger Check
+        this.handleMentionInput(text);
 
         // Auto resize textarea height
         txtInput.style.height = 'auto';
@@ -397,6 +400,23 @@ const ChatModule = {
       this.messages[contactId].push(msgObj);
       MockDB.set('messages_' + contactId, this.messages[contactId]);
       this.renderMessages();
+
+      // Simulated Status Transitions for Local Mode: Sent -> Delivered -> Read
+      setTimeout(() => {
+        msgObj.status = 'delivered';
+        MockDB.set('messages_' + contactId, this.messages[contactId]);
+        if (this.activeContact && this.activeContact.id === contactId) {
+          this.renderMessages();
+        }
+      }, 1200);
+
+      setTimeout(() => {
+        msgObj.status = 'read';
+        MockDB.set('messages_' + contactId, this.messages[contactId]);
+        if (this.activeContact && this.activeContact.id === contactId) {
+          this.renderMessages();
+        }
+      }, 2600);
     }
 
     this.clearQuote();
@@ -432,21 +452,25 @@ const ChatModule = {
       
       let checkHtml = '';
       if (isOut) {
-        if (m.status === 'read') {
-          checkHtml = `<i class="fa-solid fa-check-double check-icon read"></i>`;
+        if (m.status === 'read' || m.status === 'seen') {
+          checkHtml = `<i class="fa-solid fa-check-double check-icon read" title="Seen"></i>`;
         } else if (m.status === 'delivered') {
-          checkHtml = `<i class="fa-solid fa-check-double check-icon"></i>`;
+          checkHtml = `<i class="fa-solid fa-check-double check-icon delivered" title="Delivered"></i>`;
         } else {
-          checkHtml = `<i class="fa-solid fa-check check-icon"></i>`;
+          checkHtml = `<i class="fa-solid fa-check check-icon sent" title="Sent"></i>`;
         }
       }
 
       let quoteHtml = '';
       if (m.quote) {
+        const qSenderClean = m.quote.senderPhone ? m.quote.senderPhone.replace(/\D/g, '') : '';
+        const isQuoteMine = (m.quote.sender === myUid) || (myPhone && m.quote.senderPhone === myPhone) || (myCleanPhone && qSenderClean === myCleanPhone);
+        const quoteAuthor = isQuoteMine ? 'You' : (this.activeContact ? this.activeContact.name : 'Sender');
+
         quoteHtml = `
-          <div class="message-quote">
-            <span class="quote-author-name">${isOut ? 'You' : this.activeContact.name}</span>
-            <div class="quote-body-text">${m.quote.text || 'Media message'}</div>
+          <div class="message-quote" onclick="event.stopPropagation(); ChatModule.scrollToMessage('${m.quote.id}')" title="Click to view original message">
+            <span class="quote-author-name">${this.escapeHtml(quoteAuthor)}</span>
+            <div class="quote-body-text">${this.escapeHtml(m.quote.text || (m.quote.type === 'image' ? '📷 Photo' : '🎤 Voice note'))}</div>
           </div>
         `;
       }
@@ -482,7 +506,10 @@ const ChatModule = {
       }
 
       return `
-        <div class="message-bubble ${isOut ? 'out' : 'in'}" id="${m.id}">
+        <div class="message-bubble ${isOut ? 'out' : 'in'}" id="${m.id}" ondblclick="ChatModule.quoteMessage('${m.id}')" title="Double click to reply / mention message">
+          <button class="message-reply-btn" title="Reply / Mention message" onclick="event.stopPropagation(); ChatModule.quoteMessage('${m.id}')">
+            <i class="fa-solid fa-reply"></i>
+          </button>
           ${senderTagHtml}
           ${quoteHtml}
           ${bodyHtml}
@@ -500,15 +527,99 @@ const ChatModule = {
   },
 
   quoteMessage(msgId) {
+    if (!this.activeContact) return;
     const list = this.messages[this.activeContact.id] || [];
     const target = list.find(m => m.id === msgId);
     if (target) {
       this.quotingMessage = target;
       const bar = document.getElementById('quote-preview-bar');
-      document.getElementById('quote-sender-name').textContent = target.sender === (window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me') ? 'You' : this.activeContact.name;
-      document.getElementById('quote-text-content').textContent = target.text || 'Attachment';
+      const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
+      const myPhone = window.AppConfig.currentUser ? window.AppConfig.currentUser.phone : '';
+      const isMine = target.sender === myUid || (myPhone && target.senderPhone === myPhone);
+      
+      document.getElementById('quote-sender-name').textContent = isMine ? 'You' : this.activeContact.name;
+      document.getElementById('quote-text-content').textContent = target.text || (target.type === 'image' ? '📷 Photo' : '🎤 Voice message');
       bar.classList.remove('hidden');
+
+      const txtInput = document.getElementById('message-input');
+      if (txtInput) txtInput.focus();
     }
+  },
+
+  scrollToMessage(msgId) {
+    if (!msgId) return;
+    const el = document.getElementById(msgId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('highlight-msg');
+      setTimeout(() => el.classList.remove('highlight-msg'), 1800);
+    }
+  },
+
+  handleMentionInput(text) {
+    const popover = document.getElementById('mention-popover');
+    if (!popover) return;
+
+    const atIndex = text.lastIndexOf('@');
+
+    if (atIndex !== -1 && (atIndex === text.length - 1 || text.substring(atIndex).length < 20)) {
+      this.renderMentionSuggestions();
+      popover.classList.remove('hidden');
+    } else {
+      popover.classList.add('hidden');
+    }
+  },
+
+  renderMentionSuggestions() {
+    const listEl = document.getElementById('mention-suggestions-list');
+    if (!listEl || !this.activeContact) return;
+
+    const msgs = (this.messages[this.activeContact.id] || []).slice(-5).reverse();
+    const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
+
+    let html = `
+      <div class="mention-item" onclick="ChatModule.selectMentionContact('${this.escapeHtml(this.activeContact.name)}')">
+        <img src="${this.activeContact.avatar}" class="mention-avatar" alt="Avatar">
+        <div class="mention-info">
+          <strong>@${this.escapeHtml(this.activeContact.name)}</strong>
+          <span>Tag contact in message</span>
+        </div>
+      </div>
+    `;
+
+    msgs.forEach(m => {
+      const isMine = m.sender === myUid;
+      const author = isMine ? 'You' : this.activeContact.name;
+      const preview = m.text || (m.type === 'image' ? 'Photo' : 'Voice Note');
+
+      html += `
+        <div class="mention-item" onclick="ChatModule.quoteMessage('${m.id}'); document.getElementById('mention-popover').classList.add('hidden');">
+          <i class="fa-solid fa-reply mention-icon"></i>
+          <div class="mention-info">
+            <strong>Reply to ${this.escapeHtml(author)}</strong>
+            <span>"${this.escapeHtml(preview)}"</span>
+          </div>
+        </div>
+      `;
+    });
+
+    listEl.innerHTML = html;
+  },
+
+  selectMentionContact(name) {
+    const txtInput = document.getElementById('message-input');
+    if (txtInput) {
+      const atIndex = txtInput.value.lastIndexOf('@');
+      if (atIndex !== -1) {
+        txtInput.value = txtInput.value.substring(0, atIndex) + '@' + name + ' ';
+      } else {
+        txtInput.value += '@' + name + ' ';
+      }
+      txtInput.focus();
+      txtInput.dispatchEvent(new Event('input'));
+    }
+    const popover = document.getElementById('mention-popover');
+    if (popover) popover.classList.add('hidden');
   },
 
   clearQuote() {

@@ -37,8 +37,35 @@ const UIModule = {
     const btnProfile = document.getElementById('btn-open-profile-drawer');
     if (btnProfile) {
       btnProfile.addEventListener('click', () => {
-        const tabSettings = document.querySelector('.tab-btn[data-tab="settings"]');
-        if (tabSettings) tabSettings.click();
+        const tabProfile = document.querySelector('.tab-btn[data-tab="profile"]');
+        if (tabProfile) tabProfile.click();
+      });
+    }
+
+    // 3 Dots Menu Button -> Open Settings Modal
+    const btnMenu = document.getElementById('btn-open-menu');
+    const btnChatOptions = document.getElementById('btn-chat-options');
+    const settingsModal = document.getElementById('settings-modal');
+
+    if (btnMenu && settingsModal) {
+      btnMenu.addEventListener('click', () => {
+        settingsModal.classList.add('active');
+      });
+    }
+
+    if (btnChatOptions && settingsModal) {
+      btnChatOptions.addEventListener('click', () => {
+        settingsModal.classList.add('active');
+      });
+    }
+
+    // Settings Profile Card click -> switch to Profile tab
+    const btnSettingsProfile = document.getElementById('btn-settings-profile');
+    if (btnSettingsProfile) {
+      btnSettingsProfile.addEventListener('click', () => {
+        if (settingsModal) settingsModal.classList.remove('active');
+        const tabProfile = document.querySelector('.tab-btn[data-tab="profile"]');
+        if (tabProfile) tabProfile.click();
       });
     }
 
@@ -111,6 +138,23 @@ const UIModule = {
   },
 
   bindModals() {
+    // Universal Close Modal buttons (.btn-close-modal)
+    document.querySelectorAll('.btn-close-modal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const modal = btn.closest('.modal');
+        if (modal) modal.classList.remove('active');
+      });
+    });
+
+    // Close modal on clicking backdrop
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+        }
+      });
+    });
+
     // Open contacts modal
     const btnContacts = document.getElementById('btn-open-contacts-modal');
     if (btnContacts) {

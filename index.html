@@ -167,7 +167,7 @@
           </div>
         </header>
 
-        <!-- Navigation Tabs (Chats, Status, Contacts, Settings) -->
+        <!-- Navigation Tabs (Chats, Status, Contacts, Profile) -->
         <nav class="sidebar-tabs">
           <button class="tab-btn active" data-tab="chats">
             <i class="fa-solid fa-comment-dots"></i>
@@ -189,11 +189,6 @@
           <button class="tab-btn" data-tab="profile">
             <i class="fa-solid fa-user"></i>
             <span>Profile</span>
-          </button>
-
-          <button class="tab-btn" data-tab="settings">
-            <i class="fa-solid fa-sliders"></i>
-            <span>Settings</span>
           </button>
         </nav>
 
@@ -328,47 +323,7 @@
           </div>
         </div>
 
-        <!-- TAB CONTENT 4: SETTINGS TAB -->
-        <div id="tab-content-settings" class="tab-pane">
-          <div class="settings-tab-container">
-            <div class="settings-user-card" id="btn-settings-profile">
-              <img id="settings-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user1" alt="Avatar">
-              <div class="settings-user-info">
-                <h4 id="settings-name">Alex Morgan</h4>
-                <p id="settings-phone">+91 9876543210</p>
-              </div>
-            </div>
 
-            <div class="settings-menu-list">
-              <div class="settings-item" id="toggle-dark-mode">
-                <div class="item-icon"><i class="fa-solid fa-moon"></i></div>
-                <div class="item-label">Dark Mode</div>
-                <div class="item-control">
-                  <label class="switch">
-                    <input type="checkbox" id="chk-dark-mode" checked>
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="settings-item" id="toggle-sound-effects">
-                <div class="item-icon"><i class="fa-solid fa-volume-high"></i></div>
-                <div class="item-label">Message Notification Sounds</div>
-                <div class="item-control">
-                  <label class="switch">
-                    <input type="checkbox" id="chk-sounds" checked>
-                    <span class="slider round"></span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="settings-item danger" id="btn-logout">
-                <div class="item-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
-                <div class="item-label">Log Out</div>
-              </div>
-            </div>
-          </div>
-        </div>
 
       </aside>
 
@@ -422,6 +377,12 @@
 
           <!-- Typing Bar / Input Area -->
           <footer class="chat-input-footer">
+
+            <!-- Mention Suggestions Popover -->
+            <div id="mention-popover" class="mention-popover hidden">
+              <div class="mention-popover-header"><i class="fa-solid fa-at"></i> Mention contact or message</div>
+              <div id="mention-suggestions-list" class="mention-suggestions-list"></div>
+            </div>
 
             <!-- Reply Preview Bar (When quoting a message) -->
             <div id="quote-preview-bar" class="quote-preview-bar hidden">
@@ -495,6 +456,58 @@
 
 
     <!-- ==================== 3. MODALS & OVERLAYS ==================== -->
+
+    <!-- SETTINGS MODAL -->
+    <div id="settings-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-gear"></i> Settings</h3>
+          <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="settings-user-card" id="btn-settings-profile" style="display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--bg-input); border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 16px;">
+            <img id="settings-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=user1" alt="Avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+            <div class="settings-user-info">
+              <h4 id="settings-name" style="margin: 0; font-size: 1rem; color: var(--text-primary);">Alex Morgan</h4>
+              <p id="settings-phone" style="margin: 2px 0 0 0; font-size: 0.82rem; color: var(--text-secondary);">+91 9876543210</p>
+            </div>
+          </div>
+
+          <div class="settings-menu-list">
+            <div class="settings-item" id="toggle-dark-mode" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: var(--bg-hover); border-radius: var(--radius-sm); margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="item-icon"><i class="fa-solid fa-moon"></i></div>
+                <div class="item-label">Dark Mode</div>
+              </div>
+              <div class="item-control">
+                <label class="switch">
+                  <input type="checkbox" id="chk-dark-mode" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-item" id="toggle-sound-effects" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: var(--bg-hover); border-radius: var(--radius-sm); margin-bottom: 10px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="item-icon"><i class="fa-solid fa-volume-high"></i></div>
+                <div class="item-label">Message Sounds</div>
+              </div>
+              <div class="item-control">
+                <label class="switch">
+                  <input type="checkbox" id="chk-sounds" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-item danger" id="btn-logout" style="display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(235, 87, 87, 0.1); border: 1px solid rgba(235, 87, 87, 0.3); border-radius: var(--radius-sm); color: #eb5757; cursor: pointer;">
+              <div class="item-icon"><i class="fa-solid fa-right-from-bracket"></i></div>
+              <div class="item-label" style="font-weight: 600;">Log Out</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- FULLSCREEN STATUS STORY VIEWER MODAL -->
     <div id="status-viewer-modal" class="modal status-viewer-modal">
