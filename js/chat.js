@@ -7,6 +7,8 @@ const ChatModule = {
   messages: {},
   quotingMessage: null,
   firestoreListener: null,
+  isLoadingChats: true,
+  isLoadingMessages: false,
 
   init() {
     this.bindEvents();
@@ -236,6 +238,8 @@ const ChatModule = {
       }).catch(() => {});
     }
 
+    this.isLoadingMessages = true;
+    this.renderSkeletonMessages();
     this.loadMessagesForContact(contact);
     this.renderChatsList();
   },
@@ -646,6 +650,58 @@ const ChatModule = {
     }
   },
 
+  renderSkeletonChatsList() {
+    const container = document.getElementById('chats-list');
+    if (!container) return;
+
+    let html = '';
+    for (let i = 0; i < 5; i++) {
+      html += `
+        <div class="skeleton-chat-item">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-info">
+            <div class="skeleton-row-top">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-time"></div>
+            </div>
+            <div class="skeleton-subtitle"></div>
+          </div>
+        </div>
+      `;
+    }
+    container.innerHTML = html;
+  },
+
+  renderSkeletonMessages() {
+    const container = document.getElementById('chat-messages-container');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="skeleton-messages-wrapper">
+        <div class="skeleton-msg-bubble in">
+          <div class="skeleton-msg-avatar"></div>
+          <div class="skeleton-msg-content">
+            <div class="skeleton-line w-3-4"></div>
+            <div class="skeleton-line w-1-2"></div>
+          </div>
+        </div>
+        <div class="skeleton-msg-bubble out">
+          <div class="skeleton-msg-content">
+            <div class="skeleton-line w-full"></div>
+            <div class="skeleton-line w-2-3"></div>
+          </div>
+          <div class="skeleton-msg-avatar"></div>
+        </div>
+        <div class="skeleton-msg-bubble in">
+          <div class="skeleton-msg-avatar"></div>
+          <div class="skeleton-msg-content">
+            <div class="skeleton-line w-1-2"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
   renderChatsList() {
     const container = document.getElementById('chats-list');
     const emptyState = document.getElementById('chats-empty-state');
@@ -662,7 +718,7 @@ const ChatModule = {
       return msgs.length > 0 || isActive;
     });
 
-    if (activeConversations.length === 0) {
+    if (activeConversations.length === 0 && !this.isLoadingChats) {
       container.innerHTML = '';
       if (emptyState) emptyState.classList.remove('hidden');
       return;
@@ -698,6 +754,9 @@ const ChatModule = {
   },
 
   loadAllChats() {
+    this.isLoadingChats = true;
+    this.renderSkeletonChatsList();
+
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db && window.AppConfig.currentUser) {
       this.listenToAllUserChats();
       if (window.ContactsModule && window.ContactsModule.contacts) {
@@ -706,7 +765,11 @@ const ChatModule = {
         });
       }
     }
-    this.renderChatsList();
+
+    setTimeout(() => {
+      this.isLoadingChats = false;
+      this.renderChatsList();
+    }, 450);
   },
 
   escapeHtml(str) {
