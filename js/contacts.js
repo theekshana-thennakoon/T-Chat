@@ -185,6 +185,26 @@ const ContactsModule = {
         });
         this.saveContacts();
         this.renderContactsList();
+
+        // Dynamically update active chat contact avatar, header, profile modal & messages
+        if (window.ChatModule && window.ChatModule.activeContact) {
+          const activeClean = window.ChatModule.activeContact.phone ? window.ChatModule.activeContact.phone.replace(/\D/g, '') : '';
+          const updatedActive = this.contacts.find(x => x.phone && x.phone.replace(/\D/g, '') === activeClean);
+          if (updatedActive) {
+            window.ChatModule.activeContact.avatar = updatedActive.avatar;
+            window.ChatModule.activeContact.name = updatedActive.name;
+            window.ChatModule.activeContact.about = updatedActive.about;
+            
+            const chatHeaderAvatar = document.getElementById('chat-contact-avatar');
+            if (chatHeaderAvatar) chatHeaderAvatar.src = updatedActive.avatar;
+
+            const modalAvatar = document.getElementById('view-contact-avatar');
+            if (modalAvatar) modalAvatar.src = updatedActive.avatar;
+
+            window.ChatModule.renderMessages();
+            window.ChatModule.renderChatsList();
+          }
+        }
       }, err => console.warn('Firestore users live sync notice:', err));
     }
   },

@@ -248,13 +248,30 @@ const AuthModule = {
       lastSeen: new Date().toISOString()
     };
 
+    // Save to Firebase Firestore 'users' collection
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
-      window.AppConfig.db.collection('users').doc(updatedUser.uid).set(updatedUser, { merge: true });
+      window.AppConfig.db.collection('users').doc(updatedUser.uid).set({
+        uid: updatedUser.uid,
+        phone: updatedUser.phone || '',
+        name: updatedUser.name,
+        about: updatedUser.about,
+        avatar: updatedUser.avatar,
+        online: true,
+        lastSeen: updatedUser.lastSeen
+      }, { merge: true }).then(() => {
+        console.log('✅ Updated profile & avatar saved to Firebase users collection:', updatedUser.uid);
+      }).catch(err => console.error('❌ Error saving avatar to Firebase:', err));
     }
 
     MockDB.set('user_profile_' + updatedUser.uid, updatedUser);
     alert('Profile updated successfully!');
     this.completeLogin(updatedUser);
+
+    // Refresh chat list & active conversation messages with new avatar
+    if (window.ChatModule) {
+      window.ChatModule.renderMessages();
+      window.ChatModule.renderChatsList();
+    }
   },
 
   switchStep(stepId) {
