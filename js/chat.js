@@ -327,20 +327,33 @@ const ChatModule = {
 
   renderChatsList() {
     const container = document.getElementById('chats-list');
+    const emptyState = document.getElementById('chats-empty-state');
     if (!container) return;
 
-    if (!window.ContactsModule || window.ContactsModule.contacts.length === 0) {
-      container.innerHTML = `<div class="empty-state"><p>No contacts found.</p></div>`;
+    if (!window.ContactsModule) return;
+
+    const contacts = window.ContactsModule.contacts;
+    
+    // Filter to only contacts with active message history or currently open chat
+    const activeConversations = contacts.filter(c => {
+      const msgs = this.messages[c.id] || [];
+      const isActive = this.activeContact && this.activeContact.id === c.id;
+      return msgs.length > 0 || isActive;
+    });
+
+    if (activeConversations.length === 0) {
+      container.innerHTML = '';
+      if (emptyState) emptyState.classList.remove('hidden');
       return;
     }
 
-    const contacts = window.ContactsModule.contacts;
-    container.innerHTML = contacts.map(c => {
+    if (emptyState) emptyState.classList.add('hidden');
+
+    container.innerHTML = activeConversations.map(c => {
       const msgs = this.messages[c.id] || [];
       const lastMsg = msgs[msgs.length - 1];
       const snippet = lastMsg ? (lastMsg.type === 'image' ? '📷 Photo' : (lastMsg.type === 'voice' ? '🎤 Voice note' : lastMsg.text)) : c.about;
       const time = lastMsg ? new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
       const isActive = this.activeContact && this.activeContact.id === c.id;
 
       return `
@@ -364,6 +377,13 @@ const ChatModule = {
   },
 
   loadAllChats() {
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db && window.AppConfig.currentUser) {
+      if (window.ContactsModule && window.ContactsModule.contacts) {
+        window.ContactsModule.contacts.forEach(c => {
+          this.loadMessagesForContact(c.id);
+        });
+      }
+    }
     this.renderChatsList();
   },
 

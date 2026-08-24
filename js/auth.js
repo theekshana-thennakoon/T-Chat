@@ -332,6 +332,23 @@ const AuthModule = {
     window.AppConfig.currentUser = userObj;
     MockDB.set('current_session', userObj);
 
+    // Save/Upsert user profile directly to Firestore 'users' collection
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db && userObj && userObj.uid) {
+      window.AppConfig.db.collection('users').doc(userObj.uid).set({
+        uid: userObj.uid,
+        phone: userObj.phone || '',
+        name: userObj.name || 'TChat User',
+        about: userObj.about || 'Hey there! I am using TChat.',
+        avatar: userObj.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + userObj.uid),
+        online: true,
+        lastSeen: new Date().toISOString()
+      }, { merge: true }).then(() => {
+        console.log('✅ User profile saved to Firestore:', userObj.uid);
+      }).catch(err => {
+        console.error('❌ Error saving user to Firestore:', err);
+      });
+    }
+
     // Update Header UI & Settings UI
     document.getElementById('current-user-avatar').src = userObj.avatar;
     document.getElementById('current-user-name').textContent = userObj.name;
@@ -381,14 +398,29 @@ const AuthModule = {
       if (window.AppConfig.isLiveFirebase && window.AppConfig.auth) {
         window.AppConfig.auth.onAuthStateChanged(user => {
           if (user) {
-            const stored = MockDB.get('user_profile_' + user.uid, {
-              uid: user.uid,
-              phone: user.phoneNumber || '+91 9876543210',
-              name: user.displayName || 'TChat User',
-              avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.uid,
-              about: 'Using TChat'
+            // Check Firestore for user profile
+            window.AppConfig.db.collection('users').doc(user.uid).get().then(doc => {
+              let stored = doc.exists ? doc.data() : null;
+              if (!stored) {
+                stored = MockDB.get('user_profile_' + user.uid, {
+                  uid: user.uid,
+                  phone: user.phoneNumber || this.pendingPhone || '+91 9876543210',
+                  name: user.displayName || 'TChat User',
+                  avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.uid,
+                  about: 'Using TChat'
+                });
+              }
+              this.completeLogin(stored);
+            }).catch(() => {
+              const stored = MockDB.get('user_profile_' + user.uid, {
+                uid: user.uid,
+                phone: user.phoneNumber || this.pendingPhone || '+91 9876543210',
+                name: user.displayName || 'TChat User',
+                avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.uid,
+                about: 'Using TChat'
+              });
+              this.completeLogin(stored);
             });
-            this.completeLogin(stored);
           }
         });
       }

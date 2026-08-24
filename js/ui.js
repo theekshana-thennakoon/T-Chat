@@ -41,6 +41,15 @@ const UIModule = {
         if (tabSettings) tabSettings.click();
       });
     }
+
+    // Start First Chat button (Empty State)
+    const btnStartFirst = document.getElementById('btn-start-first-chat');
+    if (btnStartFirst) {
+      btnStartFirst.addEventListener('click', () => {
+        const tabContacts = document.querySelector('.tab-btn[data-tab="contacts"]');
+        if (tabContacts) tabContacts.click();
+      });
+    }
   },
 
   bindSettings() {

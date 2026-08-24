@@ -166,15 +166,16 @@ const ContactsModule = {
 
   syncFirebaseUsers() {
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
-      window.AppConfig.db.collection('users').get().then(snapshot => {
+      window.AppConfig.db.collection('users').onSnapshot(snapshot => {
         snapshot.forEach(doc => {
           const u = doc.data();
-          if (u && u.phone && u.uid !== (window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : '')) {
+          const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : '';
+          if (u && u.phone && u.uid !== myUid) {
             this.addContact(u.name || u.phone, u.phone);
           }
         });
         this.renderContactsList();
-      }).catch(err => console.warn('Firestore users sync notice:', err));
+      }, err => console.warn('Firestore users live sync notice:', err));
     }
   },
 

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>TChat Web & Mobile</title>
 
   <!-- Google Fonts -->
@@ -158,9 +158,6 @@
           </div>
 
           <div class="header-actions">
-            <button class="icon-btn" id="btn-open-firebase-settings" title="Firebase Settings">
-              <i class="fa-solid fa-gear"></i>
-            </button>
             <button class="icon-btn" id="btn-open-contacts-modal" title="New Chat / Contacts">
               <i class="fa-solid fa-user-plus"></i>
             </button>
@@ -324,15 +321,6 @@
                     <span class="slider round"></span>
                   </label>
                 </div>
-              </div>
-
-              <div class="settings-item" id="btn-open-firebase-config-settings">
-                <div class="item-icon"><i class="fa-solid fa-database"></i></div>
-                <div class="item-label">
-                  Firebase Credentials Setup
-                  <small id="firebase-status-text" class="status-badge live">Live Mode Active</small>
-                </div>
-                <i class="fa-solid fa-chevron-right arrow-icon"></i>
               </div>
 
               <div class="settings-item danger" id="btn-logout">
@@ -574,49 +562,7 @@
     </div>
 
 
-    <!-- FIREBASE SETTINGS MODAL -->
-    <div id="firebase-settings-modal" class="modal center-modal">
-      <div class="modal-dialog">
-        <div class="modal-header">
-          <h3><i class="fa-solid fa-database"></i> Firebase Credentials Configuration</h3>
-          <button class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body">
-          <p class="modal-desc">
-            The application works out of the box in <strong>Demo Mode</strong>. Enter your custom Firebase Web App Config to use production backend services.
-          </p>
 
-          <div class="form-group">
-            <label for="cfg-apiKey">API Key</label>
-            <input type="text" id="cfg-apiKey" placeholder="AIzaSy...">
-          </div>
-          <div class="form-group">
-            <label for="cfg-authDomain">Auth Domain</label>
-            <input type="text" id="cfg-authDomain" placeholder="your-project.firebaseapp.com">
-          </div>
-          <div class="form-group">
-            <label for="cfg-projectId">Project ID</label>
-            <input type="text" id="cfg-projectId" placeholder="your-project-id">
-          </div>
-          <div class="form-group">
-            <label for="cfg-storageBucket">Storage Bucket</label>
-            <input type="text" id="cfg-storageBucket" placeholder="your-project.appspot.com">
-          </div>
-          <div class="form-group">
-            <label for="cfg-messagingSenderId">Messaging Sender ID</label>
-            <input type="text" id="cfg-messagingSenderId" placeholder="1234567890">
-          </div>
-          <div class="form-group">
-            <label for="cfg-appId">App ID</label>
-            <input type="text" id="cfg-appId" placeholder="1:1234567890:web:abcde">
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button id="btn-save-firebase-keys" class="btn btn-primary">Save & Connect Live Firebase</button>
-          <button id="btn-reset-demo-mode" class="btn btn-secondary">Switch to Demo Mode</button>
-        </div>
-      </div>
-    </div>
 
 
     <!-- SIMULATED VOICE / VIDEO CALL MODAL -->
