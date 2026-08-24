@@ -185,17 +185,13 @@ const AuthModule = {
       });
     }
 
-    // Avatar preview file picker
+    // Avatar preview file picker (Step 3 Auth Setup)
     const fileAvatar = document.getElementById('profile-avatar-file');
     if (fileAvatar) {
       fileAvatar.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            document.getElementById('profile-avatar-img').src = evt.target.result;
-          };
-          reader.readAsDataURL(file);
+          this.handleAvatarFileSelect(file, 'profile-avatar-img');
         }
       });
     }
@@ -218,11 +214,7 @@ const AuthModule = {
       fileTabAvatar.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            document.getElementById('my-tab-avatar-img').src = evt.target.result;
-          };
-          reader.readAsDataURL(file);
+          this.handleAvatarFileSelect(file, 'my-tab-avatar-img');
         }
       });
     }
@@ -234,7 +226,63 @@ const AuthModule = {
     }
   },
 
-  handleSaveTabProfile() {
+  compressImageFile(file, maxWidth = 300, maxHeight = 300, quality = 0.82) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Return lightweight compressed JPEG DataURL (~20KB) suitable for Firestore
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  },
+
+  async handleAvatarFileSelect(file, targetImgId) {
+    if (!file) return;
+    try {
+      const compressedDataUrl = await this.compressImageFile(file, 300, 300, 0.82);
+      const imgEl = document.getElementById(targetImgId);
+      if (imgEl) imgEl.src = compressedDataUrl;
+
+      // Also update profile setup preview image if tab avatar is updated
+      if (targetImgId === 'my-tab-avatar-img') {
+        const settingsImg = document.getElementById('settings-avatar');
+        if (settingsImg) settingsImg.src = compressedDataUrl;
+      }
+    } catch (err) {
+      console.warn('Avatar compression notice:', err);
+    }
+  },
+
+  async handleSaveTabProfile() {
     if (!window.AppConfig.currentUser) return;
     const name = document.getElementById('my-tab-name-input').value.trim() || 'TChat User';
     const about = document.getElementById('my-tab-about-input').value.trim() || 'Hey there! I am using TChat.';
@@ -248,22 +296,28 @@ const AuthModule = {
       lastSeen: new Date().toISOString()
     };
 
+    window.AppConfig.currentUser = updatedUser;
+    MockDB.set('current_session', updatedUser);
+    MockDB.set('user_profile_' + updatedUser.uid, updatedUser);
+
     // Save to Firebase Firestore 'users' collection
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
-      window.AppConfig.db.collection('users').doc(updatedUser.uid).set({
-        uid: updatedUser.uid,
-        phone: updatedUser.phone || '',
-        name: updatedUser.name,
-        about: updatedUser.about,
-        avatar: updatedUser.avatar,
-        online: true,
-        lastSeen: updatedUser.lastSeen
-      }, { merge: true }).then(() => {
-        console.log('✅ Updated profile & avatar saved to Firebase users collection:', updatedUser.uid);
-      }).catch(err => console.error('❌ Error saving avatar to Firebase:', err));
+      try {
+        await window.AppConfig.db.collection('users').doc(updatedUser.uid).set({
+          uid: updatedUser.uid,
+          phone: updatedUser.phone || '',
+          name: updatedUser.name,
+          about: updatedUser.about,
+          avatar: updatedUser.avatar,
+          online: true,
+          lastSeen: updatedUser.lastSeen
+        }, { merge: true });
+        console.log('✅ Profile avatar successfully saved to Firebase users collection:', updatedUser.uid);
+      } catch (err) {
+        console.error('❌ Error saving avatar to Firebase:', err);
+      }
     }
 
-    MockDB.set('user_profile_' + updatedUser.uid, updatedUser);
     alert('Profile updated successfully!');
     this.completeLogin(updatedUser);
 
@@ -535,6 +589,11 @@ const AuthModule = {
     if (window.onAppReady) {
       window.onAppReady(userObj);
     }
+
+    // Hide Splash Screen smoothly once chats & user session are ready
+    if (window.hideSplashScreen) {
+      window.hideSplashScreen(800);
+    }
   },
 
   checkSession() {
@@ -553,6 +612,11 @@ const AuthModule = {
       if (mainScreen) {
         mainScreen.classList.remove('active');
         mainScreen.style.display = 'none';
+      }
+
+      // Hide Splash Screen to present Login Screen when no active session
+      if (window.hideSplashScreen) {
+        window.hideSplashScreen(500);
       }
 
       // Check Firebase Auth observer

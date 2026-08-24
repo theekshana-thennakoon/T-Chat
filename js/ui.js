@@ -48,6 +48,19 @@ window.alert = function(msg) {
   window.showToast(msg, type);
 };
 
+// Global Splash Screen Controller
+window.hideSplashScreen = function(delay = 650) {
+  setTimeout(() => {
+    const splash = document.getElementById('splash-screen');
+    if (splash) {
+      splash.classList.add('hidden');
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 550);
+    }
+  }, delay);
+};
+
 const UIModule = {
   init() {
     this.bindNavigation();
