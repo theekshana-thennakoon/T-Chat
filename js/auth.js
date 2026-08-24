@@ -475,12 +475,20 @@ const AuthModule = {
     }
 
     // Update Header UI & Settings UI
-    document.getElementById('current-user-avatar').src = userObj.avatar;
-    document.getElementById('current-user-name').textContent = userObj.name;
-    document.getElementById('my-status-avatar').src = userObj.avatar;
-    document.getElementById('settings-avatar').src = userObj.avatar;
-    document.getElementById('settings-name').textContent = userObj.name;
-    document.getElementById('settings-phone').textContent = userObj.phone;
+    const elCurAvatar = document.getElementById('current-user-avatar');
+    const elCurName = document.getElementById('current-user-name');
+    if (elCurAvatar) elCurAvatar.src = userObj.avatar;
+    if (elCurName) elCurName.textContent = userObj.name;
+
+    const elMyStatusAvatar = document.getElementById('my-status-avatar');
+    if (elMyStatusAvatar) elMyStatusAvatar.src = userObj.avatar;
+
+    const elSettingsAvatar = document.getElementById('settings-avatar');
+    const elSettingsName = document.getElementById('settings-name');
+    const elSettingsPhone = document.getElementById('settings-phone');
+    if (elSettingsAvatar) elSettingsAvatar.src = userObj.avatar;
+    if (elSettingsName) elSettingsName.textContent = userObj.name;
+    if (elSettingsPhone) elSettingsPhone.textContent = userObj.phone;
 
     // Update My Profile Tab Elements
     const myTabAvatar = document.getElementById('my-tab-avatar-img');
