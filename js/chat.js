@@ -157,7 +157,10 @@ const ChatModule = {
     const modal = document.getElementById('contact-profile-modal');
     if (!modal) return;
 
-    document.getElementById('view-contact-avatar').src = this.activeContact.avatar;
+    const avatarUrl = this.activeContact.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(this.activeContact.phone || this.activeContact.id || this.activeContact.name));
+    const viewAvatar = document.getElementById('view-contact-avatar');
+    if (viewAvatar) viewAvatar.src = avatarUrl;
+
     document.getElementById('view-contact-name').textContent = this.activeContact.name;
     document.getElementById('view-contact-phone').textContent = this.activeContact.phone || '';
     document.getElementById('view-contact-about').textContent = this.activeContact.about || 'Hey there! I am using TChat.';
@@ -212,7 +215,9 @@ const ChatModule = {
     document.querySelector('.app-container').classList.add('chat-active');
 
     // Header Meta
-    document.getElementById('chat-contact-avatar').src = contact.avatar;
+    const avatarUrl = contact.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(contact.phone || contact.id || contact.name));
+    const headerAvatar = document.getElementById('chat-contact-avatar');
+    if (headerAvatar) headerAvatar.src = avatarUrl;
     document.getElementById('chat-contact-name').textContent = contact.name;
     
     const statusEl = document.getElementById('chat-contact-status');

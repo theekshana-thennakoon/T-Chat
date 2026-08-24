@@ -108,8 +108,57 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* Ensure all user profile images are fully displayed on Mobile across all components */
+  .chat-contact-info {
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .chat-contact-info img,
+  #chat-contact-avatar {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .chat-avatar-wrapper {
+    width: 44px !important;
+    height: 44px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .chat-avatar-wrapper img {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .message-row {
+    max-width: 88% !important;
+    gap: 6px !important;
+  }
+
+  .message-bubble-avatar {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    flex-shrink: 0 !important;
+    display: block !important;
+    visibility: visible !important;
+    margin-bottom: 2px !important;
+  }
+
   .message-bubble {
-    max-width: 82%;
+    max-width: 100% !important;
   }
 
   .auth-screen {
