@@ -330,6 +330,21 @@ const AuthModule = {
 
     // Fallback verification for Spark free tier / test numbers
     if (digits === '123456' || digits === '000000' || digits.length === 6) {
+      if (window.AppConfig.isLiveFirebase && window.AppConfig.auth) {
+        try {
+          let authUser = window.AppConfig.auth.currentUser;
+          if (!authUser) {
+            const userCred = await window.AppConfig.auth.signInAnonymously();
+            authUser = userCred.user;
+          }
+          if (authUser) {
+            this.onAuthenticated(authUser.uid, this.pendingPhone);
+            return;
+          }
+        } catch (authErr) {
+          console.warn('Firebase Auth user registration notice:', authErr);
+        }
+      }
       const uid = 'user_' + this.pendingPhone.replace(/\D/g, '');
       this.onAuthenticated(uid, this.pendingPhone);
     } else {
@@ -436,6 +451,14 @@ const AuthModule = {
 
     // Save/Upsert user profile directly to Firestore 'users' collection
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db && userObj && userObj.uid) {
+      if (window.AppConfig.auth && window.AppConfig.auth.currentUser) {
+        try {
+          window.AppConfig.auth.currentUser.updateProfile({
+            displayName: userObj.name
+          });
+        } catch (e) {}
+      }
+
       window.AppConfig.db.collection('users').doc(userObj.uid).set({
         uid: userObj.uid,
         phone: userObj.phone || '',

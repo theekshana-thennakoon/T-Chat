@@ -237,12 +237,27 @@ const ChatModule = {
     this.renderChatsList();
   },
 
+  isSameContact(c1, c2) {
+    if (!c1 || !c2) return false;
+    if (c1 === c2) return true;
+    if (c1.id && c2.id && c1.id === c2.id) return true;
+    if (c1.uid && c2.uid && c1.uid === c2.uid) return true;
+    
+    const p1 = c1.phone ? c1.phone.replace(/\D/g, '') : '';
+    const p2 = c2.phone ? c2.phone.replace(/\D/g, '') : '';
+    if (p1 && p2 && p1 === p2) return true;
+
+    return false;
+  },
+
   loadMessagesForContact(contact) {
     if (!contact) return;
-    const contactId = typeof contact === 'object' ? contact.id : contact;
-    const contactObj = typeof contact === 'object' ? contact : (window.ContactsModule ? window.ContactsModule.contacts.find(c => c.id === contactId) : null);
+    const contactObj = typeof contact === 'object' ? contact : (window.ContactsModule ? window.ContactsModule.contacts.find(c => c.id === contact || (c.phone && contact && c.phone.replace(/\D/g, '') === String(contact).replace(/\D/g, ''))) : null);
     
-    if (window.AppConfig.isLiveFirebase && window.AppConfig.db && contactObj) {
+    if (!contactObj) return;
+    const contactId = contactObj.id;
+
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
       const chatId = this.getChatRoomId(contactObj);
       
       // Live Firestore Snapshot listener for this chat room
@@ -254,7 +269,7 @@ const ChatModule = {
           snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
           this.messages[contactId] = list;
 
-          if (this.activeContact && this.activeContact.id === contactId) {
+          if (this.activeContact && this.isSameContact(this.activeContact, contactObj)) {
             this.renderMessages();
           }
           this.renderChatsList();
@@ -267,7 +282,7 @@ const ChatModule = {
       } else {
         this.messages[contactId] = [];
       }
-      if (this.activeContact && this.activeContact.id === contactId) {
+      if (this.activeContact && this.isSameContact(this.activeContact, contactObj)) {
         this.renderMessages();
       }
     }
@@ -392,7 +407,20 @@ const ChatModule = {
     const container = document.getElementById('chat-messages-container');
     if (!container || !this.activeContact) return;
 
-    const msgs = this.messages[this.activeContact.id] || [];
+    let msgs = this.messages[this.activeContact.id] || [];
+    if (msgs.length === 0) {
+      const activeClean = this.activeContact.phone ? this.activeContact.phone.replace(/\D/g, '') : '';
+      if (activeClean) {
+        for (const cid in this.messages) {
+          const c = window.ContactsModule ? window.ContactsModule.contacts.find(x => x.id === cid) : null;
+          if (c && c.phone && c.phone.replace(/\D/g, '') === activeClean) {
+            msgs = this.messages[cid];
+            break;
+          }
+        }
+      }
+    }
+
     const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
     const myPhone = window.AppConfig.currentUser ? window.AppConfig.currentUser.phone : '';
     const myCleanPhone = myPhone ? myPhone.replace(/\D/g, '') : '';
