@@ -352,8 +352,11 @@ const ChatModule = {
   sendMessage(payload) {
     if (!this.activeContact) return;
 
-    const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
-    const myPhone = window.AppConfig.currentUser ? window.AppConfig.currentUser.phone : '';
+    const myUser = window.AppConfig.currentUser || {};
+    const myUid = myUser.uid || 'me';
+    const myPhone = myUser.phone || '';
+    const myAvatar = myUser.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + myUid);
+    const myName = myUser.name || 'TChat User';
     const myPhoneClean = myPhone ? myPhone.replace(/\D/g, '') : myUid;
 
     const contactPhoneClean = this.activeContact.phone ? this.activeContact.phone.replace(/\D/g, '') : (this.activeContact.uid || this.activeContact.id);
@@ -362,6 +365,8 @@ const ChatModule = {
       id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
       sender: myUid,
       senderPhone: myPhone,
+      senderName: myName,
+      senderAvatar: myAvatar,
       type: payload.type || 'text',
       text: payload.text || '',
       mediaUrl: payload.mediaUrl || null,
@@ -383,7 +388,7 @@ const ChatModule = {
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
       const chatId = this.getChatRoomId(this.activeContact);
       
-      // 1. Save room-level metadata so receiver's device discovers the chat
+      // 1. Save room-level metadata so receiver's device discovers the chat with avatar
       window.AppConfig.db.collection('chats').doc(chatId).set({
         chatId: chatId,
         participants: [myPhoneClean, contactPhoneClean, myUid, this.activeContact.uid || ''].filter(Boolean),
@@ -391,7 +396,8 @@ const ChatModule = {
         lastTimestamp: msgObj.timestamp,
         senderUid: myUid,
         senderPhone: myPhoneClean,
-        senderName: window.AppConfig.currentUser ? window.AppConfig.currentUser.name : 'TChat User'
+        senderName: myName,
+        senderAvatar: myAvatar
       }, { merge: true });
 
       // 2. Save message document
@@ -441,15 +447,18 @@ const ChatModule = {
       }
     }
 
-    const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
-    const myPhone = window.AppConfig.currentUser ? window.AppConfig.currentUser.phone : '';
+    const myUser = window.AppConfig.currentUser || {};
+    const myUid = myUser.uid || 'me';
+    const myPhone = myUser.phone || '';
+    const myAvatar = myUser.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + myUid);
     const myCleanPhone = myPhone ? myPhone.replace(/\D/g, '') : '';
 
     container.innerHTML = msgs.map(m => {
       const msgSenderClean = m.senderPhone ? m.senderPhone.replace(/\D/g, '') : '';
       const isOut = (m.sender === myUid) || (myPhone && m.senderPhone === myPhone) || (myCleanPhone && msgSenderClean === myCleanPhone);
       const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
+      const avatarSrc = isOut ? (m.senderAvatar || myAvatar) : (m.senderAvatar || (this.activeContact ? this.activeContact.avatar : ''));
+
       let checkHtml = '';
       if (isOut) {
         if (m.status === 'read' || m.status === 'seen') {
@@ -506,18 +515,21 @@ const ChatModule = {
       }
 
       return `
-        <div class="message-bubble ${isOut ? 'out' : 'in'}" id="${m.id}" ondblclick="ChatModule.quoteMessage('${m.id}')" title="Double click to reply / mention message">
-          <button class="message-reply-btn" title="Reply / Mention message" onclick="event.stopPropagation(); ChatModule.quoteMessage('${m.id}')">
-            <i class="fa-solid fa-reply"></i>
-          </button>
-          ${senderTagHtml}
-          ${quoteHtml}
-          ${bodyHtml}
-          <div class="message-meta">
-            <span>${timeStr}</span>
-            ${checkHtml}
+        <div class="message-row ${isOut ? 'out' : 'in'}">
+          <img src="${avatarSrc}" class="message-bubble-avatar" alt="Avatar" title="${isOut ? 'You' : this.escapeHtml(this.activeContact ? this.activeContact.name : '')}">
+          <div class="message-bubble ${isOut ? 'out' : 'in'}" id="${m.id}" ondblclick="ChatModule.quoteMessage('${m.id}')" title="Double click to reply / mention message">
+            <button class="message-reply-btn" title="Reply / Mention message" onclick="event.stopPropagation(); ChatModule.quoteMessage('${m.id}')">
+              <i class="fa-solid fa-reply"></i>
+            </button>
+            ${senderTagHtml}
+            ${quoteHtml}
+            ${bodyHtml}
+            <div class="message-meta">
+              <span>${timeStr}</span>
+              ${checkHtml}
+            </div>
+            ${reactionHtml}
           </div>
-          ${reactionHtml}
         </div>
       `;
     }).join('');

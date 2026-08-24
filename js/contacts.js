@@ -135,7 +135,7 @@ const ContactsModule = {
     this.renderContactsList();
   },
 
-  addContact(name, phone) {
+  addContact(name, phone, customAvatar) {
     const normalizedPhone = this.normalizePhone(phone);
     const exists = this.contacts.find(c => c.phone === normalizedPhone);
     
@@ -144,12 +144,15 @@ const ContactsModule = {
         id: 'contact_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
         name: name,
         phone: normalizedPhone,
-        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(normalizedPhone),
+        avatar: customAvatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + encodeURIComponent(normalizedPhone)),
         about: 'Available on TChat'
       };
       this.contacts.push(newContact);
       this.saveContacts();
       return true;
+    } else if (customAvatar && exists.avatar !== customAvatar) {
+      exists.avatar = customAvatar;
+      this.saveContacts();
     }
     return false;
   },
@@ -171,9 +174,16 @@ const ContactsModule = {
           const u = doc.data();
           const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : '';
           if (u && u.phone && u.uid !== myUid) {
-            this.addContact(u.name || u.phone, u.phone);
+            this.addContact(u.name || u.phone, u.phone, u.avatar);
+            const c = this.contacts.find(x => x.phone === this.normalizePhone(u.phone));
+            if (c) {
+              if (u.avatar) c.avatar = u.avatar;
+              if (u.name) c.name = u.name;
+              if (u.about) c.about = u.about;
+            }
           }
         });
+        this.saveContacts();
         this.renderContactsList();
       }, err => console.warn('Firestore users live sync notice:', err));
     }
