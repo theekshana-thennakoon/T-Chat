@@ -132,15 +132,6 @@ window.hideSplashScreen = function(delay = 500) {
   }
 };
 
-const UIModule = {
-  init() {
-    this.bindNavigation();
-    this.bindSettings();
-    this.bindModals();
-    this.bindSecurityProtection();
-    this.bindContextMenuAndLongPress();
-  },
-
 /* Global Centered Delete Choice Modal System (Delete for Me vs Delete for Everyone) */
 window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choose how you want to delete this conversation.') {
   return new Promise((resolve) => {
@@ -196,6 +187,15 @@ window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choos
     modal.classList.add('active');
   });
 };
+
+const UIModule = {
+  init() {
+    this.bindNavigation();
+    this.bindSettings();
+    this.bindModals();
+    this.bindSecurityProtection();
+    this.bindContextMenuAndLongPress();
+  },
 
   bindContextMenuAndLongPress() {
     const menu = document.getElementById('custom-context-menu');
@@ -311,11 +311,15 @@ window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choos
         e.stopPropagation();
         hideContextMenu();
         if (currentTargetMsgText) {
-          navigator.clipboard.writeText(currentTargetMsgText).then(() => {
-            window.showToast('Message copied to clipboard!', 'success');
-          }).catch(() => {
-            window.showToast('Could not copy message', 'error');
-          });
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(currentTargetMsgText).then(() => {
+              window.showToast('Message copied to clipboard!', 'success');
+            }).catch(() => {
+              this.fallbackCopyText(currentTargetMsgText);
+            });
+          } else {
+            this.fallbackCopyText(currentTargetMsgText);
+          }
         }
       };
     }
@@ -338,18 +342,6 @@ window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choos
         hideContextMenu();
         if (currentTargetMsgId && window.ChatModule) {
           window.ChatModule.deleteSingleMessage(currentTargetMsgId);
-        }
-      };
-    }
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(currentTargetMsgText).then(() => {
-              window.showToast('Message copied to clipboard!', 'success');
-            }).catch(() => {
-              this.fallbackCopyText(currentTargetMsgText);
-            });
-          } else {
-            this.fallbackCopyText(currentTargetMsgText);
-          }
         }
       };
     }
