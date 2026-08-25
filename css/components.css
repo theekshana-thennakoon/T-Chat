@@ -2602,6 +2602,31 @@ mark.search-highlight {
   border-color: #0084ff;
 }
 
+.gallery-upload-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: rgba(0, 132, 255, 0.1);
+  border: 2px dashed rgba(0, 132, 255, 0.45) !important;
+  color: #0084ff;
+}
+
+.gallery-upload-tile:hover {
+  background-color: rgba(0, 132, 255, 0.2);
+  border-color: #0084ff !important;
+}
+
+.gallery-upload-icon {
+  font-size: 1.5rem;
+}
+
+.gallery-upload-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .gallery-media-tile img,
 .gallery-media-tile video {
   width: 100%;

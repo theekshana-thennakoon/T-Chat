@@ -1054,7 +1054,14 @@ const ChatModule = {
       return true;
     });
 
-    grid.innerHTML = filtered.map(item => {
+    const uploadTileHtml = `
+      <label class="gallery-media-tile gallery-upload-tile" for="gallery-browse-device-input" title="Browse device photos & videos">
+        <div class="gallery-upload-icon"><i class="fa-solid fa-plus"></i></div>
+        <span class="gallery-upload-text">Browse Files</span>
+      </label>
+    `;
+
+    const tilesHtml = filtered.map(item => {
       const selectedIndex = this.selectedGalleryIds.indexOf(item.id);
       const isSelected = selectedIndex !== -1;
       const badgeText = isSelected ? (selectedIndex + 1) : '';
@@ -1073,6 +1080,8 @@ const ChatModule = {
         </div>
       `;
     }).join('');
+
+    grid.innerHTML = uploadTileHtml + tilesHtml;
 
     this.updateGalleryFooterState();
   },

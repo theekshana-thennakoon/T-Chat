@@ -457,7 +457,7 @@
 
                 <!-- Attach Menu Dropdown -->
                 <div id="attach-dropdown" class="attach-dropdown hidden">
-                  <button class="attach-item" id="btn-open-gallery-modal">
+                  <button type="button" class="attach-item" id="btn-open-gallery-modal" onclick="event.stopPropagation(); if(window.ChatModule) window.ChatModule.openMediaGalleryModal();">
                     <i class="fa-solid fa-image icon-img"></i>
                     <span>Photos & Videos</span>
                   </button>
