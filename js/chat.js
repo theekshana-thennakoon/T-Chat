@@ -222,6 +222,17 @@ const ChatModule = {
     return 'room_' + roomKey;
   },
 
+  closeConversation() {
+    this.activeContact = null;
+    const noChat = document.getElementById('no-chat-selected');
+    const activeChat = document.getElementById('active-chat-screen');
+    if (noChat) noChat.classList.add('active');
+    if (activeChat) activeChat.classList.remove('active');
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) appContainer.classList.remove('chat-active');
+    this.renderChatsList();
+  },
+
   openConversation(contact) {
     this.activeContact = contact;
     

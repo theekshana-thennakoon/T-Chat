@@ -289,7 +289,11 @@ const UIModule = {
     const btnBack = document.getElementById('btn-back-to-chats');
     if (btnBack) {
       btnBack.addEventListener('click', () => {
-        document.querySelector('.app-container').classList.remove('chat-active');
+        if (window.ChatModule) {
+          window.ChatModule.closeConversation();
+        } else {
+          document.querySelector('.app-container').classList.remove('chat-active');
+        }
       });
     }
 

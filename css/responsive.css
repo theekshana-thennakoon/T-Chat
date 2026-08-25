@@ -8,6 +8,23 @@
 }
 
 @media (max-width: 768px) {
+  /* Prevent text selection and long-press callout in mobile view */
+  * {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Keep text inputs, textareas, and editable fields selectable */
+  input, textarea, select, [contenteditable="true"], .selectable-text {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+  }
+
   /* Prevent mobile browsers (iOS Safari & Chrome) from auto-zooming on input focus */
   input, select, textarea {
     font-size: 16px !important;
@@ -96,7 +113,6 @@
   .active-chat-screen {
     height: 100vh;
     height: 100dvh;
-    display: flex;
     flex-direction: column;
     position: relative;
     overflow: hidden;
