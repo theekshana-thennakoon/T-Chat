@@ -652,8 +652,17 @@ const AuthModule = {
     }
   },
 
-  logout() {
-    if (confirm('Are you sure you want to log out from TChat?')) {
+  async logout() {
+    const confirmed = await window.showConfirm({
+      title: 'Log Out of TChat?',
+      message: 'Are you sure you want to log out from TChat?',
+      okText: 'Log Out',
+      cancelText: 'Cancel',
+      isDanger: true,
+      icon: 'fa-solid fa-right-from-bracket'
+    });
+
+    if (confirmed) {
       if (window.AppConfig.isLiveFirebase && window.AppConfig.auth) {
         window.AppConfig.auth.signOut().catch(err => console.warn('Sign out notice:', err));
       }

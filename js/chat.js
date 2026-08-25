@@ -432,9 +432,19 @@ const ChatModule = {
     this.renderChatsList();
   },
 
-  deleteChat(contactId) {
+  async deleteChat(contactId) {
     if (!contactId) return;
-    if (!confirm('Are you sure you want to delete this conversation?')) return;
+
+    const confirmed = await window.showConfirm({
+      title: 'Delete Conversation?',
+      message: 'Are you sure you want to delete this chat conversation? This cannot be undone.',
+      okText: 'Delete Chat',
+      cancelText: 'Cancel',
+      isDanger: true,
+      icon: 'fa-solid fa-trash-can'
+    });
+
+    if (!confirmed) return;
 
     this.deletedChats[contactId] = true;
     delete this.messages[contactId];

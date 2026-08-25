@@ -48,6 +48,73 @@ window.alert = function(msg) {
   window.showToast(msg, type);
 };
 
+/* Global Centered Confirmation Modal Dialog System */
+window.showConfirm = function(options = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-modal-title');
+    const msgEl = document.getElementById('confirm-modal-message');
+    const iconWrapper = document.getElementById('confirm-modal-icon');
+    const btnCancel = document.getElementById('btn-confirm-cancel');
+    const btnOk = document.getElementById('btn-confirm-ok');
+
+    if (!modal) {
+      resolve(false);
+      return;
+    }
+
+    const title = options.title || 'Confirm Action';
+    const message = options.message || (typeof options === 'string' ? options : 'Are you sure you want to proceed?');
+    const okText = options.okText || 'Confirm';
+    const cancelText = options.cancelText || 'Cancel';
+    const isDanger = options.isDanger !== false;
+    const iconClass = options.icon || (isDanger ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-circle-info');
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (btnOk) {
+      btnOk.textContent = okText;
+      btnOk.className = isDanger ? 'btn btn-danger' : 'btn btn-primary';
+    }
+    if (btnCancel) btnCancel.textContent = cancelText;
+
+    if (iconWrapper) {
+      iconWrapper.className = isDanger ? 'confirm-icon-wrapper' : 'confirm-icon-wrapper info';
+      iconWrapper.innerHTML = `<i class="${iconClass}"></i>`;
+    }
+
+    const handleOk = () => {
+      cleanup();
+      modal.classList.remove('active');
+      resolve(true);
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      modal.classList.remove('active');
+      resolve(false);
+    };
+
+    const handleBackdrop = (e) => {
+      if (e.target === modal) {
+        handleCancel();
+      }
+    };
+
+    const cleanup = () => {
+      if (btnOk) btnOk.removeEventListener('click', handleOk);
+      if (btnCancel) btnCancel.removeEventListener('click', handleCancel);
+      modal.removeEventListener('click', handleBackdrop);
+    };
+
+    if (btnOk) btnOk.addEventListener('click', handleOk);
+    if (btnCancel) btnCancel.addEventListener('click', handleCancel);
+    modal.addEventListener('click', handleBackdrop);
+
+    modal.classList.add('active');
+  });
+};
+
 // Global Splash Screen Controller
 window.hideSplashScreen = function(delay = 650) {
   setTimeout(() => {
