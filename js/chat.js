@@ -9,6 +9,9 @@ const ChatModule = {
   firestoreListener: null,
   isLoadingChats: true,
   isLoadingMessages: false,
+  searchMatches: [],
+  currentMatchIndex: -1,
+  searchQuery: '',
 
   init() {
     this.bindEvents();
@@ -150,6 +153,200 @@ const ChatModule = {
         this.filterChatsList(term);
       });
     }
+
+    // In-Chat Search Header Controls
+    const btnSearchInChat = document.getElementById('btn-search-in-chat');
+    const btnCloseSearch = document.getElementById('btn-close-chat-search');
+    const btnClearSearch = document.getElementById('btn-clear-chat-search');
+    const chatSearchInput = document.getElementById('chat-search-input');
+    const btnPrevMatch = document.getElementById('btn-prev-search-match');
+    const btnNextMatch = document.getElementById('btn-next-search-match');
+
+    if (btnSearchInChat) {
+      btnSearchInChat.addEventListener('click', () => this.openChatSearch());
+    }
+
+    if (btnCloseSearch) {
+      btnCloseSearch.addEventListener('click', () => this.closeChatSearch());
+    }
+
+    if (btnClearSearch) {
+      btnClearSearch.addEventListener('click', () => {
+        if (chatSearchInput) {
+          chatSearchInput.value = '';
+          chatSearchInput.focus();
+        }
+        this.performChatSearch('');
+      });
+    }
+
+    if (chatSearchInput) {
+      chatSearchInput.addEventListener('input', (e) => {
+        this.performChatSearch(e.target.value);
+      });
+
+      chatSearchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.closeChatSearch();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          this.navigateSearchMatch(e.shiftKey ? -1 : 1);
+        }
+      });
+    }
+
+    if (btnPrevMatch) {
+      btnPrevMatch.addEventListener('click', () => this.navigateSearchMatch(-1));
+    }
+
+    if (btnNextMatch) {
+      btnNextMatch.addEventListener('click', () => this.navigateSearchMatch(1));
+    }
+  },
+
+  openChatSearch() {
+    const searchBar = document.getElementById('chat-search-bar');
+    const header = document.getElementById('chat-header');
+    const input = document.getElementById('chat-search-input');
+    if (!searchBar || !header) return;
+
+    header.classList.add('search-active');
+    searchBar.classList.remove('hidden');
+    if (input) {
+      input.value = '';
+      setTimeout(() => input.focus(), 50);
+    }
+    this.performChatSearch('');
+  },
+
+  closeChatSearch() {
+    const searchBar = document.getElementById('chat-search-bar');
+    const header = document.getElementById('chat-header');
+    const input = document.getElementById('chat-search-input');
+    const clearBtn = document.getElementById('btn-clear-chat-search');
+    const counter = document.getElementById('chat-search-counter');
+    const navBtns = document.getElementById('chat-search-nav-btns');
+
+    if (header) header.classList.remove('search-active');
+    if (searchBar) searchBar.classList.add('hidden');
+    if (input) input.value = '';
+    if (clearBtn) clearBtn.classList.add('hidden');
+    if (counter) counter.classList.add('hidden');
+    if (navBtns) navBtns.classList.add('hidden');
+
+    this.clearSearchHighlights();
+    this.searchMatches = [];
+    this.currentMatchIndex = -1;
+    this.searchQuery = '';
+  },
+
+  clearSearchHighlights() {
+    const container = document.getElementById('chat-messages-container');
+    if (!container) return;
+
+    container.querySelectorAll('.message-bubble.search-match-active').forEach(el => {
+      el.classList.remove('search-match-active');
+    });
+
+    container.querySelectorAll('mark.search-highlight').forEach(mark => {
+      const parent = mark.parentNode;
+      if (parent) {
+        parent.replaceChild(document.createTextNode(mark.textContent), mark);
+        parent.normalize();
+      }
+    });
+  },
+
+  performChatSearch(query) {
+    this.searchQuery = (query || '').trim();
+    const clearBtn = document.getElementById('btn-clear-chat-search');
+    const counter = document.getElementById('chat-search-counter');
+    const navBtns = document.getElementById('chat-search-nav-btns');
+
+    if (clearBtn) {
+      if (this.searchQuery.length > 0) clearBtn.classList.remove('hidden');
+      else clearBtn.classList.add('hidden');
+    }
+
+    this.clearSearchHighlights();
+    this.searchMatches = [];
+    this.currentMatchIndex = -1;
+
+    if (!this.searchQuery) {
+      if (counter) counter.classList.add('hidden');
+      if (navBtns) navBtns.classList.add('hidden');
+      return;
+    }
+
+    const container = document.getElementById('chat-messages-container');
+    if (!container || !this.activeContact) return;
+
+    const msgs = this.messages[this.activeContact.id] || [];
+    const lowerQuery = this.searchQuery.toLowerCase();
+
+    const matchingMsgs = msgs.filter(m => m.text && m.text.toLowerCase().includes(lowerQuery));
+
+    if (matchingMsgs.length === 0) {
+      if (counter) {
+        counter.textContent = '0 matches';
+        counter.classList.remove('hidden');
+      }
+      if (navBtns) navBtns.classList.add('hidden');
+      return;
+    }
+
+    matchingMsgs.forEach(m => {
+      const bubbleEl = document.getElementById(m.id);
+      if (bubbleEl) {
+        this.searchMatches.push(m.id);
+        const pEl = bubbleEl.querySelector('p');
+        if (pEl) {
+          const text = pEl.textContent;
+          const regex = new RegExp(`(${this.escapeRegExp(this.searchQuery)})`, 'gi');
+          pEl.innerHTML = text.replace(regex, '<mark class="search-highlight">$1</mark>');
+        }
+      }
+    });
+
+    if (this.searchMatches.length > 0) {
+      this.currentMatchIndex = 0;
+      if (counter) {
+        counter.textContent = `1 of ${this.searchMatches.length}`;
+        counter.classList.remove('hidden');
+      }
+      if (navBtns) navBtns.classList.remove('hidden');
+      this.focusMatch(0);
+    }
+  },
+
+  escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  },
+
+  focusMatch(index) {
+    if (this.searchMatches.length === 0 || index < 0 || index >= this.searchMatches.length) return;
+
+    document.querySelectorAll('.message-bubble.search-match-active').forEach(el => {
+      el.classList.remove('search-match-active');
+    });
+
+    const msgId = this.searchMatches[index];
+    const bubbleEl = document.getElementById(msgId);
+    if (bubbleEl) {
+      bubbleEl.classList.add('search-match-active');
+      bubbleEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    const counter = document.getElementById('chat-search-counter');
+    if (counter) {
+      counter.textContent = `${index + 1} of ${this.searchMatches.length}`;
+    }
+  },
+
+  navigateSearchMatch(direction) {
+    if (this.searchMatches.length === 0) return;
+    this.currentMatchIndex = (this.currentMatchIndex + direction + this.searchMatches.length) % this.searchMatches.length;
+    this.focusMatch(this.currentMatchIndex);
   },
 
   openContactProfileModal() {
@@ -223,6 +420,7 @@ const ChatModule = {
   },
 
   closeConversation() {
+    this.closeChatSearch();
     this.activeContact = null;
     const noChat = document.getElementById('no-chat-selected');
     const activeChat = document.getElementById('active-chat-screen');
@@ -234,6 +432,7 @@ const ChatModule = {
   },
 
   openConversation(contact) {
+    this.closeChatSearch();
     this.activeContact = contact;
     
     // UI layout active state

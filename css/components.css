@@ -812,6 +812,102 @@ input:checked + .slider:before {
   flex-shrink: 0;
 }
 
+/* In-Chat Header Search Overlay */
+.chat-header.search-active #btn-back-to-chats,
+.chat-header.search-active .chat-contact-info,
+.chat-header.search-active .chat-header-actions {
+  display: none !important;
+}
+
+.chat-header-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.chat-header-search.hidden {
+  display: none !important;
+}
+
+.chat-search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.chat-search-input-wrapper .search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.chat-search-input-wrapper input {
+  width: 100%;
+  padding: 8px 32px 8px 34px;
+  border-radius: 20px;
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.chat-search-input-wrapper input:focus {
+  border-color: var(--accent-green);
+  box-shadow: 0 0 0 2px rgba(0, 168, 132, 0.2);
+}
+
+.chat-search-input-wrapper .clear-icon {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+}
+
+.chat-search-counter {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.chat-search-nav-btns {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-search-nav-btns .icon-btn {
+  width: 32px;
+  height: 32px;
+  font-size: 0.85rem;
+}
+
+/* In-Chat Search Highlight */
+mark.search-highlight {
+  background-color: rgba(255, 235, 59, 0.45);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.message-bubble.search-match-active {
+  box-shadow: 0 0 0 2px var(--accent-green), 0 4px 14px rgba(0, 168, 132, 0.35) !important;
+}
+
 .sender-name-header {
   font-size: 0.78rem;
   font-weight: 700;
