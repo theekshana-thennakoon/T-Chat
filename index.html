@@ -467,7 +467,7 @@
                     <i class="fa-solid fa-file-lines icon-doc"></i>
                     <span>Document</span>
                   </label>
-                  <input type="file" id="attach-file-input" class="hidden">
+                  <input type="file" id="attach-file-input" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf,text/plain" multiple class="hidden">
                 </div>
               </div>
 
@@ -809,6 +809,21 @@
           <button class="btn btn-primary" id="btn-confirm-image-send">
             <i class="fa-solid fa-paper-plane"></i> Send
           </button>
+        </div>
+      </div>
+    <!-- DOCUMENT / PDF VIEWER MODAL -->
+    <div id="document-viewer-modal" class="modal center-modal">
+      <div class="modal-dialog doc-viewer-dialog">
+        <div class="modal-header">
+          <h3 id="doc-modal-title">Document Preview</h3>
+          <div class="doc-modal-actions">
+            <button class="icon-btn" id="btn-open-doc-new-tab" title="Open in new tab"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+            <button class="icon-btn" id="btn-download-doc" title="Download file"><i class="fa-solid fa-download"></i></button>
+            <button class="icon-btn btn-close-modal" id="btn-close-doc-modal" title="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        </div>
+        <div class="modal-body doc-viewer-body">
+          <iframe id="doc-viewer-iframe" src="" title="Document Preview"></iframe>
         </div>
       </div>
     </div>

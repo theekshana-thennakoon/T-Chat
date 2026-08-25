@@ -19,6 +19,8 @@ const ChatModule = {
   isSelectionMode: false,
   pendingSendImages: [],
   activeImageIndex: 0,
+  activeViewingDocUrl: null,
+  activeViewingDocName: null,
 
   init() {
     this.bindEvents();
@@ -140,14 +142,30 @@ const ChatModule = {
     const fileDoc = document.getElementById('attach-file-input');
     if (fileDoc) {
       fileDoc.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          this.handleDocumentFileUpload(file);
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+          files.forEach(file => this.handleDocumentFileUpload(file));
           fileDoc.value = '';
           const drop = document.getElementById('attach-dropdown');
           if (drop) drop.classList.add('hidden');
         }
       });
+    }
+
+    // Document viewer modal buttons
+    const btnNewTabDoc = document.getElementById('btn-open-doc-new-tab');
+    const btnDownloadDoc = document.getElementById('btn-download-doc');
+    const btnCloseDocModal = document.getElementById('btn-close-doc-modal');
+
+    if (btnNewTabDoc) btnNewTabDoc.onclick = () => this.openDocumentInNewTab();
+    if (btnDownloadDoc) btnDownloadDoc.onclick = () => this.downloadDocumentFile();
+    if (btnCloseDocModal) {
+      btnCloseDocModal.onclick = () => {
+        const modal = document.getElementById('document-viewer-modal');
+        if (modal) modal.classList.remove('active');
+        const iframe = document.getElementById('doc-viewer-iframe');
+        if (iframe) iframe.src = '';
+      };
     }
 
     // Toggle emoji picker & attachment menus
@@ -1099,19 +1117,106 @@ const ChatModule = {
   handleDocumentFileUpload(file) {
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      if (window.showToast) window.showToast('File size must be under 2MB', 'error');
+    if (file.size > 15 * 1024 * 1024) {
+      if (window.showToast) window.showToast('File size must be under 15MB', 'error');
       return;
     }
 
+    if (window.showToast) window.showToast(`Uploading ${file.name}...`, 'info');
+
     const reader = new FileReader();
     reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+
       this.sendMessage({
-        type: 'text',
-        text: `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`
+        type: 'document',
+        text: file.name,
+        fileName: file.name,
+        fileSize: `${(file.size / 1024).toFixed(1)} KB`,
+        fileUrl: dataUrl,
+        isPdf: isPdf
       });
     };
     reader.readAsDataURL(file);
+  },
+
+  dataURLtoBlob(dataurl) {
+    if (!dataurl || typeof dataurl !== 'string' || !dataurl.includes(',')) return null;
+    try {
+      const arr = dataurl.split(',');
+      const mimeMatch = arr[0].match(/:(.*?);/);
+      const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    } catch(err) {
+      console.warn('DataURL to blob error:', err);
+      return null;
+    }
+  },
+
+  openDocumentFile(dataUrl, fileName = 'Document') {
+    if (!dataUrl) {
+      if (window.showToast) window.showToast('Document content unavailable', 'warning');
+      return;
+    }
+
+    this.activeViewingDocName = fileName;
+    this.activeViewingDocUrl = dataUrl;
+
+    const modal = document.getElementById('document-viewer-modal');
+    const titleEl = document.getElementById('doc-modal-title');
+    const iframe = document.getElementById('doc-viewer-iframe');
+
+    if (titleEl) titleEl.textContent = fileName;
+
+    let targetSrc = dataUrl;
+    const blob = this.dataURLtoBlob(dataUrl);
+    if (blob) {
+      targetSrc = URL.createObjectURL(blob);
+    }
+
+    if (iframe) {
+      iframe.src = targetSrc;
+    }
+
+    if (modal) {
+      modal.classList.add('active');
+    } else {
+      window.open(targetSrc, '_blank');
+    }
+  },
+
+  openDocumentInNewTab() {
+    if (!this.activeViewingDocUrl) return;
+    let url = this.activeViewingDocUrl;
+    const blob = this.dataURLtoBlob(url);
+    if (blob) {
+      url = URL.createObjectURL(blob);
+    }
+    window.open(url, '_blank');
+  },
+
+  downloadDocumentFile() {
+    if (!this.activeViewingDocUrl) return;
+    const fileName = this.activeViewingDocName || 'download';
+    let url = this.activeViewingDocUrl;
+    const blob = this.dataURLtoBlob(url);
+    if (blob) {
+      url = URL.createObjectURL(blob);
+    }
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   },
 
   sendMessage(payload) {
@@ -1136,6 +1241,10 @@ const ChatModule = {
       text: payload.text || '',
       mediaUrl: payload.mediaUrl || null,
       voiceUrl: payload.voiceUrl || null,
+      fileName: payload.fileName || null,
+      fileSize: payload.fileSize || null,
+      fileUrl: payload.fileUrl || null,
+      isPdf: payload.isPdf || false,
       quote: this.quotingMessage ? { ...this.quotingMessage } : null,
       reactions: [],
       timestamp: new Date().toISOString(),
@@ -1164,7 +1273,7 @@ const ChatModule = {
       window.AppConfig.db.collection('chats').doc(chatId).set({
         chatId: chatId,
         participants: [myPhoneClean, contactPhoneClean, myUid, this.activeContact.uid || ''].filter(Boolean),
-        lastMessage: payload.text || (payload.type === 'image' ? '📷 Photo' : (payload.type === 'voice' ? '🎤 Voice note' : 'Message')),
+        lastMessage: payload.text || (payload.type === 'image' ? '📷 Photo' : (payload.type === 'voice' ? '🎤 Voice note' : (payload.type === 'document' ? ('📄 ' + (payload.fileName || 'Document')) : 'Message'))),
         lastTimestamp: msgObj.timestamp,
         senderUid: myUid,
         senderPhone: myPhoneClean,
@@ -1276,6 +1385,29 @@ const ChatModule = {
               <span class="waveform-bar active" style="height:14px"></span>
               <span class="waveform-bar active" style="height:18px"></span>
               <span class="waveform-bar active" style="height:10px"></span>
+            </div>
+          </div>
+        `;
+      } else if (m.type === 'document' || (m.text && m.text.startsWith('📄'))) {
+        const rawText = m.text || '';
+        const fileName = m.fileName || rawText.replace(/^📄\s*/, '').replace(/\s*\([\d.]+\s*KB\)$/, '') || 'Document';
+        const fileSize = m.fileSize || (rawText.match(/\(([\d.]+\s*KB)\)/) ? rawText.match(/\(([\d.]+\s*KB)\)/)[1] : 'File');
+        const isPdf = m.isPdf || fileName.toLowerCase().endsWith('.pdf') || (m.fileUrl && m.fileUrl.startsWith('data:application/pdf'));
+
+        const encodedName = this.escapeHtml(fileName).replace(/'/g, "\\'");
+        const encodedUrl = (m.fileUrl || m.mediaUrl || '').replace(/'/g, "\\'");
+
+        bodyHtml = `
+          <div class="document-card" onclick="event.stopPropagation(); ChatModule.openDocumentFile('${encodedUrl}', '${encodedName}')" title="Click to open ${this.escapeHtml(fileName)}">
+            <div class="doc-icon-wrapper ${isPdf ? 'pdf' : ''}">
+              <i class="fa-solid ${isPdf ? 'fa-file-pdf' : 'fa-file-lines'}"></i>
+            </div>
+            <div class="doc-details">
+              <span class="doc-title">${this.escapeHtml(fileName)}</span>
+              <span class="doc-subtitle">${fileSize} • Click to open</span>
+            </div>
+            <div class="doc-download-icon">
+              <i class="fa-solid fa-circle-down"></i>
             </div>
           </div>
         `;
