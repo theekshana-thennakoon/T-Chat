@@ -72,16 +72,41 @@ const ChatModule = {
       });
     }
 
-    // Attachment input listeners
+    // Attachment input listeners & Paste listener for multiple images
     const fileImg = document.getElementById('attach-image-input');
     if (fileImg) {
       fileImg.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          this.handleImageFileUpload(file);
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+          if (window.showToast) {
+            window.showToast(`Sending ${files.length} photo${files.length > 1 ? 's' : ''}...`, 'info');
+          }
+          files.forEach(file => this.handleImageFileUpload(file));
           fileImg.value = '';
           const drop = document.getElementById('attach-dropdown');
           if (drop) drop.classList.add('hidden');
+        }
+      });
+    }
+
+    if (txtInput) {
+      txtInput.addEventListener('paste', (e) => {
+        const items = e.clipboardData && e.clipboardData.items;
+        if (items) {
+          const imageFiles = [];
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+              const file = items[i].getAsFile();
+              if (file) imageFiles.push(file);
+            }
+          }
+          if (imageFiles.length > 0) {
+            e.preventDefault();
+            if (window.showToast) {
+              window.showToast(`Sending ${imageFiles.length} pasted photo${imageFiles.length > 1 ? 's' : ''}...`, 'info');
+            }
+            imageFiles.forEach(file => this.handleImageFileUpload(file));
+          }
         }
       });
     }
@@ -581,16 +606,43 @@ const ChatModule = {
 
     const count = this.selectedMessageIds.size;
     const contactId = this.activeContact.id;
+    const msgs = this.messages[contactId] || [];
+    const selectedArray = Array.from(this.selectedMessageIds);
+
+    const myUid = window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me';
+    const myPhone = window.AppConfig.currentUser ? window.AppConfig.currentUser.phone : '';
+    const myCleanPhone = myPhone ? myPhone.replace(/\D/g, '') : '';
+
+    // Check if any selected message is a received (incoming) message
+    const hasReceivedMessage = selectedArray.some(mId => {
+      const bubble = document.getElementById(mId);
+      if (bubble && bubble.classList.contains('in')) return true;
+
+      const m = msgs.find(msg => msg.id === mId);
+      if (m) {
+        const msgSenderClean = m.senderPhone ? m.senderPhone.replace(/\D/g, '') : '';
+        const isOut = (m.sender === myUid) || (m.sender === 'me') || (myPhone && m.senderPhone === myPhone) || (myCleanPhone && msgSenderClean === myCleanPhone);
+        if (!isOut) return true;
+      }
+      return false;
+    });
+
+    const allowEveryone = !hasReceivedMessage;
+
     const choice = await window.showDeleteChoiceModal(
       `Delete ${count} Message${count > 1 ? 's' : ''}?`,
-      'Choose how you want to delete the selected message(s).'
+      allowEveryone ? 'Choose how you want to delete the selected message(s).' : 'Received messages can only be deleted for you.',
+      allowEveryone
     );
 
     if (!choice) return;
 
-    const selectedArray = Array.from(this.selectedMessageIds);
-
     if (choice === 'everyone') {
+      if (!allowEveryone) {
+        if (window.showToast) window.showToast('Cannot delete received messages for everyone', 'warning');
+        return;
+      }
+
       if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
         const chatId = this.getChatRoomId(this.activeContact);
         selectedArray.forEach(mId => {
@@ -902,8 +954,6 @@ const ChatModule = {
       if (window.showToast) window.showToast('Please select a valid image file', 'error');
       return;
     }
-
-    if (window.showToast) window.showToast('Sending photo...', 'info');
 
     this.compressAndResizeImage(file, (compressedDataUrl) => {
       this.sendMessage({

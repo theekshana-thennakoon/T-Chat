@@ -133,7 +133,7 @@ window.hideSplashScreen = function(delay = 500) {
 };
 
 /* Global Centered Delete Choice Modal System (Delete for Me vs Delete for Everyone) */
-window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choose how you want to delete this conversation.') {
+window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choose how you want to delete this conversation.', allowEveryone = true) {
   return new Promise((resolve) => {
     const modal = document.getElementById('delete-choice-modal');
     const titleEl = document.getElementById('delete-modal-title');
@@ -149,6 +149,10 @@ window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choos
 
     if (titleEl) titleEl.textContent = title;
     if (subtextEl) subtextEl.textContent = subtext;
+
+    if (btnEveryone) {
+      btnEveryone.style.display = allowEveryone ? '' : 'none';
+    }
 
     const handleEveryone = () => {
       cleanup();
