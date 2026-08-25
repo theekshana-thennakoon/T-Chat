@@ -785,6 +785,31 @@
             Cancel
           </button>
         </div>
+    <!-- CUSTOM IMAGE PREVIEW & CAPTION MODAL -->
+    <div id="image-send-modal" class="modal center-modal">
+      <div class="modal-dialog image-send-dialog">
+        <div class="modal-header">
+          <h3 id="image-modal-title">Send Photo</h3>
+          <button class="icon-btn btn-close-modal" id="btn-close-img-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body image-send-body">
+          <div class="image-preview-stage">
+            <img id="image-preview-img" src="" alt="Photo Preview">
+          </div>
+          <!-- Thumbnail Strip for Multiple Images -->
+          <div id="image-thumbnails-strip" class="image-thumbnails-strip hidden"></div>
+
+          <div class="image-caption-input-wrapper">
+            <i class="fa-regular fa-face-smile caption-emoji-icon"></i>
+            <input type="text" id="image-caption-input" placeholder="Add a caption..." autocomplete="off">
+          </div>
+        </div>
+        <div class="modal-footer image-send-footer">
+          <button class="btn btn-secondary" id="btn-cancel-image-send">Cancel</button>
+          <button class="btn btn-primary" id="btn-confirm-image-send">
+            <i class="fa-solid fa-paper-plane"></i> Send
+          </button>
+        </div>
       </div>
     </div>
 

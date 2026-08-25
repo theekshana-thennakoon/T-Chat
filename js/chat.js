@@ -17,6 +17,8 @@ const ChatModule = {
   selectedChatForMenu: null,
   selectedMessageIds: new Set(),
   isSelectionMode: false,
+  pendingSendImages: [],
+  activeImageIndex: 0,
 
   init() {
     this.bindEvents();
@@ -72,16 +74,13 @@ const ChatModule = {
       });
     }
 
-    // Attachment input listeners & Paste listener for multiple images
+    // Attachment input listeners & Paste listener for image customization modal
     const fileImg = document.getElementById('attach-image-input');
     if (fileImg) {
       fileImg.addEventListener('change', (e) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
-          if (window.showToast) {
-            window.showToast(`Sending ${files.length} photo${files.length > 1 ? 's' : ''}...`, 'info');
-          }
-          files.forEach(file => this.handleImageFileUpload(file));
+          this.handleMultipleImageFiles(files);
           fileImg.value = '';
           const drop = document.getElementById('attach-dropdown');
           if (drop) drop.classList.add('hidden');
@@ -102,13 +101,40 @@ const ChatModule = {
           }
           if (imageFiles.length > 0) {
             e.preventDefault();
-            if (window.showToast) {
-              window.showToast(`Sending ${imageFiles.length} pasted photo${imageFiles.length > 1 ? 's' : ''}...`, 'info');
-            }
-            imageFiles.forEach(file => this.handleImageFileUpload(file));
+            this.handleMultipleImageFiles(imageFiles);
           }
         }
       });
+    }
+
+    // Image preview & caption modal action listeners
+    const btnConfirmImg = document.getElementById('btn-confirm-image-send');
+    const btnCancelImg = document.getElementById('btn-cancel-image-send');
+    const btnCloseImg = document.getElementById('btn-close-img-modal');
+    const imageCaptionInput = document.getElementById('image-caption-input');
+
+    if (btnConfirmImg) {
+      btnConfirmImg.onclick = () => this.sendPendingImages();
+    }
+    if (btnCancelImg) {
+      btnCancelImg.onclick = () => this.cancelPendingImages();
+    }
+    if (btnCloseImg) {
+      btnCloseImg.onclick = () => this.cancelPendingImages();
+    }
+
+    if (imageCaptionInput) {
+      imageCaptionInput.oninput = (e) => {
+        if (this.pendingSendImages && this.pendingSendImages[this.activeImageIndex]) {
+          this.pendingSendImages[this.activeImageIndex].caption = e.target.value;
+        }
+      };
+      imageCaptionInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.sendPendingImages();
+        }
+      };
     }
 
     const fileDoc = document.getElementById('attach-file-input');
@@ -950,17 +976,124 @@ const ChatModule = {
   },
 
   handleImageFileUpload(file) {
-    if (!file || !file.type.startsWith('image/')) {
-      if (window.showToast) window.showToast('Please select a valid image file', 'error');
+    if (file) this.handleMultipleImageFiles([file]);
+  },
+
+  handleMultipleImageFiles(files) {
+    if (!files || files.length === 0) return;
+    const validFiles = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'));
+    if (validFiles.length === 0) {
+      if (window.showToast) window.showToast('Please select valid image file(s)', 'error');
       return;
     }
 
-    this.compressAndResizeImage(file, (compressedDataUrl) => {
-      this.sendMessage({
-        type: 'image',
-        mediaUrl: compressedDataUrl
+    let processedCount = 0;
+    const items = [];
+
+    validFiles.forEach((file, index) => {
+      this.compressAndResizeImage(file, (dataUrl) => {
+        items[index] = { dataUrl: dataUrl, caption: '' };
+        processedCount++;
+        if (processedCount === validFiles.length) {
+          this.pendingSendImages = items.filter(Boolean);
+          this.activeImageIndex = 0;
+          this.openImageSendModal();
+        }
       });
     });
+  },
+
+  openImageSendModal() {
+    if (!this.pendingSendImages || this.pendingSendImages.length === 0) return;
+    const modal = document.getElementById('image-send-modal');
+    if (!modal) {
+      this.sendPendingImages();
+      return;
+    }
+
+    this.activeImageIndex = 0;
+    this.renderImageModalPreview();
+    modal.classList.add('active');
+
+    const input = document.getElementById('image-caption-input');
+    if (input) {
+      setTimeout(() => input.focus(), 100);
+    }
+  },
+
+  renderImageModalPreview() {
+    if (!this.pendingSendImages || this.pendingSendImages.length === 0) return;
+    const activeItem = this.pendingSendImages[this.activeImageIndex] || this.pendingSendImages[0];
+
+    const titleEl = document.getElementById('image-modal-title');
+    const imgEl = document.getElementById('image-preview-img');
+    const stripEl = document.getElementById('image-thumbnails-strip');
+    const captionInput = document.getElementById('image-caption-input');
+
+    const total = this.pendingSendImages.length;
+    if (titleEl) {
+      titleEl.textContent = total > 1 ? `Send Photos (${total})` : 'Send Photo';
+    }
+
+    if (imgEl) {
+      imgEl.src = activeItem.dataUrl;
+    }
+
+    if (captionInput) {
+      captionInput.value = activeItem.caption || '';
+    }
+
+    if (stripEl) {
+      if (total > 1) {
+        stripEl.classList.remove('hidden');
+        stripEl.innerHTML = this.pendingSendImages.map((item, idx) => `
+          <img src="${item.dataUrl}" class="image-thumb-item ${idx === this.activeImageIndex ? 'active' : ''}" onclick="ChatModule.switchImageModalTab(${idx})" title="Photo ${idx + 1}">
+        `).join('');
+      } else {
+        stripEl.classList.add('hidden');
+        stripEl.innerHTML = '';
+      }
+    }
+  },
+
+  switchImageModalTab(idx) {
+    if (idx < 0 || idx >= this.pendingSendImages.length) return;
+    const captionInput = document.getElementById('image-caption-input');
+    if (captionInput && this.pendingSendImages[this.activeImageIndex]) {
+      this.pendingSendImages[this.activeImageIndex].caption = captionInput.value.trim();
+    }
+
+    this.activeImageIndex = idx;
+    this.renderImageModalPreview();
+  },
+
+  sendPendingImages() {
+    const captionInput = document.getElementById('image-caption-input');
+    if (captionInput && this.pendingSendImages[this.activeImageIndex]) {
+      this.pendingSendImages[this.activeImageIndex].caption = captionInput.value.trim();
+    }
+
+    const modal = document.getElementById('image-send-modal');
+    if (modal) modal.classList.remove('active');
+
+    const itemsToSend = [...this.pendingSendImages];
+    this.pendingSendImages = [];
+    this.activeImageIndex = 0;
+
+    itemsToSend.forEach(item => {
+      this.sendMessage({
+        type: 'image',
+        mediaUrl: item.dataUrl,
+        text: item.caption || ''
+      });
+    });
+  },
+
+  cancelPendingImages() {
+    const modal = document.getElementById('image-send-modal');
+    if (modal) modal.classList.remove('active');
+    this.pendingSendImages = [];
+    this.activeImageIndex = 0;
   },
 
   handleDocumentFileUpload(file) {
@@ -1131,7 +1264,8 @@ const ChatModule = {
 
       let bodyHtml = '';
       if (m.type === 'image') {
-        bodyHtml = `<img src="${m.mediaUrl}" class="message-image" alt="Uploaded photo" onclick="event.stopPropagation(); ChatModule.openImageLightbox('${m.mediaUrl}')" title="Click to view full size photo">`;
+        const captionHtml = m.text ? `<p class="image-caption-text">${this.escapeHtml(m.text)}</p>` : '';
+        bodyHtml = `<img src="${m.mediaUrl}" class="message-image" alt="Uploaded photo" onclick="event.stopPropagation(); ChatModule.openImageLightbox('${m.mediaUrl}')" title="Click to view full size photo">${captionHtml}`;
       } else if (m.type === 'voice') {
         bodyHtml = `
           <div class="voice-note-player">
