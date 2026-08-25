@@ -76,15 +76,23 @@ const ChatModule = {
       fileImg.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => {
-            this.sendMessage({
-              type: 'image',
-              mediaUrl: evt.target.result
-            });
-          };
-          reader.readAsDataURL(file);
-          document.getElementById('attach-dropdown').classList.add('hidden');
+          this.handleImageFileUpload(file);
+          fileImg.value = '';
+          const drop = document.getElementById('attach-dropdown');
+          if (drop) drop.classList.add('hidden');
+        }
+      });
+    }
+
+    const fileDoc = document.getElementById('attach-file-input');
+    if (fileDoc) {
+      fileDoc.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          this.handleDocumentFileUpload(file);
+          fileDoc.value = '';
+          const drop = document.getElementById('attach-dropdown');
+          if (drop) drop.classList.add('hidden');
         }
       });
     }
@@ -683,6 +691,81 @@ const ChatModule = {
       }, err => console.warn('Global user chats listener notice:', err));
   },
 
+  compressAndResizeImage(file, callback) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1000;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        callback(compressedDataUrl);
+      };
+      img.onerror = () => {
+        callback(e.target.result);
+      };
+      img.src = e.target.result;
+    };
+    reader.onerror = () => {
+      if (window.showToast) window.showToast('Failed to read image file', 'error');
+    };
+    reader.readAsDataURL(file);
+  },
+
+  handleImageFileUpload(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      if (window.showToast) window.showToast('Please select a valid image file', 'error');
+      return;
+    }
+
+    if (window.showToast) window.showToast('Sending photo...', 'info');
+
+    this.compressAndResizeImage(file, (compressedDataUrl) => {
+      this.sendMessage({
+        type: 'image',
+        mediaUrl: compressedDataUrl
+      });
+    });
+  },
+
+  handleDocumentFileUpload(file) {
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      if (window.showToast) window.showToast('File size must be under 2MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this.sendMessage({
+        type: 'text',
+        text: `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`
+      });
+    };
+    reader.readAsDataURL(file);
+  },
+
   sendMessage(payload) {
     if (!this.activeContact) return;
 
@@ -714,6 +797,13 @@ const ChatModule = {
     const contactId = this.activeContact.id;
     if (!this.messages[contactId]) this.messages[contactId] = [];
 
+    // Optimistically push message to local active list and re-render
+    const existingIdx = this.messages[contactId].findIndex(m => m.id === msgObj.id);
+    if (existingIdx === -1) {
+      this.messages[contactId].push(msgObj);
+    }
+    this.renderMessages();
+
     // Play Sound
     if (window.SoundManager) {
       window.SoundManager.playSend();
@@ -726,25 +816,31 @@ const ChatModule = {
       window.AppConfig.db.collection('chats').doc(chatId).set({
         chatId: chatId,
         participants: [myPhoneClean, contactPhoneClean, myUid, this.activeContact.uid || ''].filter(Boolean),
-        lastMessage: payload.text || (payload.type === 'image' ? '📷 Photo' : '🎤 Voice note'),
+        lastMessage: payload.text || (payload.type === 'image' ? '📷 Photo' : (payload.type === 'voice' ? '🎤 Voice note' : 'Message')),
         lastTimestamp: msgObj.timestamp,
         senderUid: myUid,
         senderPhone: myPhoneClean,
         senderName: myName,
         senderAvatar: myAvatar
-      }, { merge: true });
+      }, { merge: true }).catch(err => console.warn('Chat room set notice:', err));
 
       // 2. Save message document
-      window.AppConfig.db.collection('chats').doc(chatId).collection('messages').doc(msgObj.id).set(msgObj);
+      window.AppConfig.db.collection('chats').doc(chatId).collection('messages').doc(msgObj.id).set(msgObj)
+        .catch(err => {
+          console.error('Error saving message to Firestore:', err);
+          if (window.showToast) window.showToast('Could not save photo to server', 'error');
+        });
     } else {
-      this.messages[contactId].push(msgObj);
-      MockDB.set('messages_' + contactId, this.messages[contactId]);
-      this.renderMessages();
+      try {
+        MockDB.set('messages_' + contactId, this.messages[contactId]);
+      } catch(e) {
+        console.warn('MockDB storage notice:', e);
+      }
 
       // Simulated Status Transitions for Local Mode: Sent -> Delivered -> Read
       setTimeout(() => {
         msgObj.status = 'delivered';
-        MockDB.set('messages_' + contactId, this.messages[contactId]);
+        try { MockDB.set('messages_' + contactId, this.messages[contactId]); } catch(e){}
         if (this.activeContact && this.activeContact.id === contactId) {
           this.renderMessages();
         }
@@ -752,7 +848,7 @@ const ChatModule = {
 
       setTimeout(() => {
         msgObj.status = 'read';
-        MockDB.set('messages_' + contactId, this.messages[contactId]);
+        try { MockDB.set('messages_' + contactId, this.messages[contactId]); } catch(e){}
         if (this.activeContact && this.activeContact.id === contactId) {
           this.renderMessages();
         }
