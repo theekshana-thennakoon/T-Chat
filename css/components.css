@@ -2522,6 +2522,151 @@ mark.search-highlight {
   gap: 8px;
 }
 
+/* WhatsApp-Style Gallery Picker Modal */
+.gallery-modal-dialog {
+  max-width: 620px;
+  width: 95%;
+  height: 80vh;
+}
+
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+}
+
+.gallery-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gallery-modal-body {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(80vh - 125px);
+  overflow-y: auto;
+}
+
+.gallery-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  padding-bottom: 8px;
+}
+
+.gallery-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gallery-tab:hover,
+.gallery-tab.active {
+  background-color: var(--primary-color, #0084ff);
+  color: #ffffff;
+}
+
+.gallery-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.gallery-media-tile {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background-color: #1a222d;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.gallery-media-tile:hover {
+  transform: scale(1.03);
+}
+
+.gallery-media-tile.selected {
+  border-color: #0084ff;
+}
+
+.gallery-media-tile img,
+.gallery-media-tile video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gallery-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 2px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  z-index: 5;
+  transition: all 0.15s ease;
+}
+
+.gallery-media-tile.selected .gallery-badge {
+  background-color: #0084ff;
+  border-color: #0084ff;
+}
+
+.gallery-type-icon {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  background-color: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.68rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gallery-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+}
+
+.gallery-info-text {
+  font-size: 0.85rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.message-video {
+  max-width: 100%;
+  max-height: 280px;
+  border-radius: 8px;
+  object-fit: cover;
+  display: block;
+}
+
 
 
 

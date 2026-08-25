@@ -457,11 +457,10 @@
 
                 <!-- Attach Menu Dropdown -->
                 <div id="attach-dropdown" class="attach-dropdown hidden">
-                  <label class="attach-item" for="attach-image-input">
+                  <button class="attach-item" id="btn-open-gallery-modal">
                     <i class="fa-solid fa-image icon-img"></i>
                     <span>Photos & Videos</span>
-                  </label>
-                  <input type="file" id="attach-image-input" accept="image/*" multiple class="hidden">
+                  </button>
 
                   <label class="attach-item" for="attach-file-input">
                     <i class="fa-solid fa-file-lines icon-doc"></i>
@@ -824,6 +823,39 @@
         </div>
         <div class="modal-body doc-viewer-body">
           <iframe id="doc-viewer-iframe" src="" title="Document Preview"></iframe>
+        </div>
+      </div>
+    <!-- WHATSAPP-STYLE MEDIA GALLERY PICKER MODAL -->
+    <div id="media-gallery-modal" class="modal center-modal">
+      <div class="modal-dialog gallery-modal-dialog">
+        <div class="modal-header gallery-header">
+          <div class="gallery-header-left">
+            <button class="icon-btn btn-close-modal" id="btn-close-gallery-modal"><i class="fa-solid fa-xmark"></i></button>
+            <h3>Gallery <span id="gallery-selected-count"></span></h3>
+          </div>
+          <label class="btn btn-secondary btn-sm" for="gallery-browse-device-input" style="padding:6px 12px;font-size:0.82rem;cursor:pointer;margin:0;">
+            <i class="fa-solid fa-folder-open"></i> Device Files
+          </label>
+          <input type="file" id="gallery-browse-device-input" accept="image/*,video/*" multiple class="hidden">
+        </div>
+        
+        <div class="modal-body gallery-modal-body">
+          <!-- Media Filter Tabs -->
+          <div class="gallery-tabs">
+            <button class="gallery-tab active" data-filter="all" onclick="ChatModule.setGalleryFilter('all')">All Media</button>
+            <button class="gallery-tab" data-filter="photo" onclick="ChatModule.setGalleryFilter('photo')">Photos</button>
+            <button class="gallery-tab" data-filter="video" onclick="ChatModule.setGalleryFilter('video')">Videos</button>
+          </div>
+
+          <!-- Media Grid -->
+          <div id="gallery-media-grid" class="gallery-media-grid"></div>
+        </div>
+
+        <div class="modal-footer gallery-footer">
+          <span class="gallery-info-text" id="gallery-footer-info">Select photos or videos</span>
+          <button class="btn btn-primary" id="btn-confirm-gallery-select" disabled onclick="ChatModule.confirmGallerySelection()">
+            <i class="fa-solid fa-check"></i> Next
+          </button>
         </div>
       </div>
     </div>

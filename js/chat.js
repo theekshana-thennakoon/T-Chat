@@ -21,6 +21,18 @@ const ChatModule = {
   activeImageIndex: 0,
   activeViewingDocUrl: null,
   activeViewingDocName: null,
+  galleryFilter: 'all',
+  selectedGalleryIds: [],
+  galleryLibrary: [
+    { id: 'g1', type: 'image', isVideo: false, url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop&q=60', name: 'Beach Sunset' },
+    { id: 'g2', type: 'image', isVideo: false, url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=500&auto=format&fit=crop&q=60', name: 'Starry Mountains' },
+    { id: 'g3', type: 'image', isVideo: false, url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=500&auto=format&fit=crop&q=60', name: 'Foggy Forest' },
+    { id: 'g4', type: 'image', isVideo: false, url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=500&auto=format&fit=crop&q=60', name: 'Nature Trail' },
+    { id: 'g5', type: 'image', isVideo: false, url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500&auto=format&fit=crop&q=60', name: 'Yosemite Lake' },
+    { id: 'g6', type: 'image', isVideo: false, url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=500&auto=format&fit=crop&q=60', name: 'Green Valley' },
+    { id: 'g7', type: 'video', isVideo: true, url: 'https://www.w3schools.com/html/mov_bbb.mp4', name: 'Sample Video 1' },
+    { id: 'g8', type: 'video', isVideo: true, url: 'https://www.w3schools.com/html/movie.mp4', name: 'Sample Video 2' }
+  ],
 
   init() {
     this.bindEvents();
@@ -77,6 +89,26 @@ const ChatModule = {
     }
 
     // Attachment input listeners & Paste listener for image customization modal
+    const btnOpenGallery = document.getElementById('btn-open-gallery-modal');
+    if (btnOpenGallery) {
+      btnOpenGallery.onclick = () => {
+        const drop = document.getElementById('attach-dropdown');
+        if (drop) drop.classList.add('hidden');
+        this.openMediaGalleryModal();
+      };
+    }
+
+    const deviceFileGallery = document.getElementById('gallery-browse-device-input');
+    if (deviceFileGallery) {
+      deviceFileGallery.onchange = (e) => {
+        const files = e.target.files;
+        if (files && files.length > 0) {
+          this.handleDeviceGalleryFiles(files);
+          deviceFileGallery.value = '';
+        }
+      };
+    }
+
     const fileImg = document.getElementById('attach-image-input');
     if (fileImg) {
       fileImg.addEventListener('change', (e) => {
@@ -993,15 +1025,146 @@ const ChatModule = {
     reader.readAsDataURL(file);
   },
 
+  openMediaGalleryModal() {
+    this.selectedGalleryIds = [];
+    this.galleryFilter = 'all';
+    const modal = document.getElementById('media-gallery-modal');
+    if (!modal) return;
+
+    this.renderMediaGallery();
+    modal.classList.add('active');
+  },
+
+  setGalleryFilter(filter) {
+    this.galleryFilter = filter || 'all';
+    document.querySelectorAll('.gallery-tab').forEach(tab => {
+      if (tab.dataset.filter === this.galleryFilter) tab.classList.add('active');
+      else tab.classList.remove('active');
+    });
+    this.renderMediaGallery();
+  },
+
+  renderMediaGallery() {
+    const grid = document.getElementById('gallery-media-grid');
+    if (!grid) return;
+
+    const filtered = this.galleryLibrary.filter(item => {
+      if (this.galleryFilter === 'photo') return item.type === 'image' || !item.isVideo;
+      if (this.galleryFilter === 'video') return item.type === 'video' || item.isVideo;
+      return true;
+    });
+
+    grid.innerHTML = filtered.map(item => {
+      const selectedIndex = this.selectedGalleryIds.indexOf(item.id);
+      const isSelected = selectedIndex !== -1;
+      const badgeText = isSelected ? (selectedIndex + 1) : '';
+
+      const mediaHtml = item.isVideo ? `
+        <video src="${item.url}" muted></video>
+        <span class="gallery-type-icon"><i class="fa-solid fa-video"></i> Video</span>
+      ` : `
+        <img src="${item.url}" alt="${this.escapeHtml(item.name || 'Photo')}">
+      `;
+
+      return `
+        <div class="gallery-media-tile ${isSelected ? 'selected' : ''}" onclick="ChatModule.toggleGallerySelection('${item.id}')">
+          <div class="gallery-badge">${badgeText}</div>
+          ${mediaHtml}
+        </div>
+      `;
+    }).join('');
+
+    this.updateGalleryFooterState();
+  },
+
+  toggleGallerySelection(id) {
+    const idx = this.selectedGalleryIds.indexOf(id);
+    if (idx !== -1) {
+      this.selectedGalleryIds.splice(idx, 1);
+    } else {
+      this.selectedGalleryIds.push(id);
+    }
+    this.renderMediaGallery();
+  },
+
+  updateGalleryFooterState() {
+    const btnNext = document.getElementById('btn-confirm-gallery-select');
+    const infoText = document.getElementById('gallery-footer-info');
+    const countHeader = document.getElementById('gallery-selected-count');
+
+    const count = this.selectedGalleryIds.length;
+    if (countHeader) countHeader.textContent = count > 0 ? `(${count})` : '';
+
+    if (btnNext) {
+      btnNext.disabled = count === 0;
+      btnNext.innerHTML = count > 0 ? `<i class="fa-solid fa-check"></i> Next (${count})` : `<i class="fa-solid fa-check"></i> Next`;
+    }
+
+    if (infoText) {
+      infoText.textContent = count > 0 ? `${count} media item${count > 1 ? 's' : ''} selected` : 'Select photos or videos';
+    }
+  },
+
+  handleDeviceGalleryFiles(files) {
+    if (!files || files.length === 0) return;
+    const validFiles = Array.from(files).filter(f => f && f.type && (f.type.startsWith('image/') || f.type.startsWith('video/')));
+    if (validFiles.length === 0) {
+      if (window.showToast) window.showToast('Please select valid image or video file(s)', 'error');
+      return;
+    }
+
+    let loadedCount = 0;
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const isVid = file.type.startsWith('video/');
+        const newItem = {
+          id: 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          type: isVid ? 'video' : 'image',
+          isVideo: isVid,
+          url: e.target.result,
+          name: file.name
+        };
+        this.galleryLibrary.unshift(newItem);
+        this.selectedGalleryIds.push(newItem.id);
+        loadedCount++;
+
+        if (loadedCount === validFiles.length) {
+          this.renderMediaGallery();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  confirmGallerySelection() {
+    if (this.selectedGalleryIds.length === 0) return;
+
+    const selectedItems = this.selectedGalleryIds.map(id => this.galleryLibrary.find(item => item.id === id)).filter(Boolean);
+
+    const modal = document.getElementById('media-gallery-modal');
+    if (modal) modal.classList.remove('active');
+
+    this.pendingSendImages = selectedItems.map(item => ({
+      dataUrl: item.url,
+      type: item.type || (item.isVideo ? 'video' : 'image'),
+      isVideo: !!item.isVideo,
+      caption: ''
+    }));
+
+    this.selectedGalleryIds = [];
+    this.openImageSendModal();
+  },
+
   handleImageFileUpload(file) {
     if (file) this.handleMultipleImageFiles([file]);
   },
 
   handleMultipleImageFiles(files) {
     if (!files || files.length === 0) return;
-    const validFiles = Array.from(files).filter(f => f && f.type && f.type.startsWith('image/'));
+    const validFiles = Array.from(files).filter(f => f && f.type && (f.type.startsWith('image/') || f.type.startsWith('video/')));
     if (validFiles.length === 0) {
-      if (window.showToast) window.showToast('Please select valid image file(s)', 'error');
+      if (window.showToast) window.showToast('Please select valid image or video file(s)', 'error');
       return;
     }
 
@@ -1009,15 +1172,30 @@ const ChatModule = {
     const items = [];
 
     validFiles.forEach((file, index) => {
-      this.compressAndResizeImage(file, (dataUrl) => {
-        items[index] = { dataUrl: dataUrl, caption: '' };
-        processedCount++;
-        if (processedCount === validFiles.length) {
-          this.pendingSendImages = items.filter(Boolean);
-          this.activeImageIndex = 0;
-          this.openImageSendModal();
-        }
-      });
+      const isVid = file.type.startsWith('video/');
+      if (isVid) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          items[index] = { dataUrl: e.target.result, type: 'video', isVideo: true, caption: '' };
+          processedCount++;
+          if (processedCount === validFiles.length) {
+            this.pendingSendImages = items.filter(Boolean);
+            this.activeImageIndex = 0;
+            this.openImageSendModal();
+          }
+        };
+        reader.readAsDataURL(file);
+      } else {
+        this.compressAndResizeImage(file, (dataUrl) => {
+          items[index] = { dataUrl: dataUrl, type: 'image', isVideo: false, caption: '' };
+          processedCount++;
+          if (processedCount === validFiles.length) {
+            this.pendingSendImages = items.filter(Boolean);
+            this.activeImageIndex = 0;
+            this.openImageSendModal();
+          }
+        });
+      }
     });
   },
 
@@ -1049,12 +1227,32 @@ const ChatModule = {
     const captionInput = document.getElementById('image-caption-input');
 
     const total = this.pendingSendImages.length;
+    const isVid = activeItem.isVideo || activeItem.type === 'video';
     if (titleEl) {
-      titleEl.textContent = total > 1 ? `Send Photos (${total})` : 'Send Photo';
+      titleEl.textContent = total > 1 ? `Send Media (${total})` : (isVid ? 'Send Video' : 'Send Photo');
     }
 
     if (imgEl) {
-      imgEl.src = activeItem.dataUrl;
+      if (isVid) {
+        imgEl.style.display = 'none';
+        let vidEl = document.getElementById('image-preview-video');
+        if (!vidEl) {
+          vidEl = document.createElement('video');
+          vidEl.id = 'image-preview-video';
+          vidEl.controls = true;
+          vidEl.style.maxWidth = '100%';
+          vidEl.style.maxHeight = '320px';
+          vidEl.style.borderRadius = '8px';
+          imgEl.parentElement.appendChild(vidEl);
+        }
+        vidEl.src = activeItem.dataUrl;
+        vidEl.style.display = 'block';
+      } else {
+        const vidEl = document.getElementById('image-preview-video');
+        if (vidEl) vidEl.style.display = 'none';
+        imgEl.src = activeItem.dataUrl;
+        imgEl.style.display = 'block';
+      }
     }
 
     if (captionInput) {
@@ -1064,9 +1262,14 @@ const ChatModule = {
     if (stripEl) {
       if (total > 1) {
         stripEl.classList.remove('hidden');
-        stripEl.innerHTML = this.pendingSendImages.map((item, idx) => `
-          <img src="${item.dataUrl}" class="image-thumb-item ${idx === this.activeImageIndex ? 'active' : ''}" onclick="ChatModule.switchImageModalTab(${idx})" title="Photo ${idx + 1}">
-        `).join('');
+        stripEl.innerHTML = this.pendingSendImages.map((item, idx) => {
+          const itemIsVid = item.isVideo || item.type === 'video';
+          return itemIsVid ? `
+            <video src="${item.dataUrl}" class="image-thumb-item ${idx === this.activeImageIndex ? 'active' : ''}" onclick="ChatModule.switchImageModalTab(${idx})" title="Video ${idx + 1}"></video>
+          ` : `
+            <img src="${item.dataUrl}" class="image-thumb-item ${idx === this.activeImageIndex ? 'active' : ''}" onclick="ChatModule.switchImageModalTab(${idx})" title="Photo ${idx + 1}">
+          `;
+        }).join('');
       } else {
         stripEl.classList.add('hidden');
         stripEl.innerHTML = '';
@@ -1100,7 +1303,7 @@ const ChatModule = {
 
     itemsToSend.forEach(item => {
       this.sendMessage({
-        type: 'image',
+        type: item.type || (item.isVideo ? 'video' : 'image'),
         mediaUrl: item.dataUrl,
         text: item.caption || ''
       });
