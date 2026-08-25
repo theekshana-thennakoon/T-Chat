@@ -15,6 +15,8 @@ const ChatModule = {
   pinnedChats: JSON.parse(localStorage.getItem('tchat_pinned_chats') || '{}'),
   deletedChats: JSON.parse(localStorage.getItem('tchat_deleted_chats') || '{}'),
   selectedChatForMenu: null,
+  selectedMessageIds: new Set(),
+  isSelectionMode: false,
 
   init() {
     this.bindEvents();
@@ -241,6 +243,23 @@ const ChatModule = {
         }
       }
     });
+
+    // Message Selection Action Listeners
+    const btnCancelSel = document.getElementById('btn-cancel-selection');
+    const btnCopySel = document.getElementById('btn-copy-selected-messages');
+    const btnDeleteSel = document.getElementById('btn-delete-selected-messages');
+
+    if (btnCancelSel) {
+      btnCancelSel.addEventListener('click', () => this.clearMessageSelection());
+    }
+
+    if (btnCopySel) {
+      btnCopySel.addEventListener('click', () => this.copySelectedMessages());
+    }
+
+    if (btnDeleteSel) {
+      btnDeleteSel.addEventListener('click', () => this.deleteSelectedMessages());
+    }
   },
 
   openChatSearch() {
@@ -435,16 +454,15 @@ const ChatModule = {
   async deleteChat(contactId) {
     if (!contactId) return;
 
-    const confirmed = await window.showConfirm({
-      title: 'Delete Conversation?',
-      message: 'Are you sure you want to delete this chat conversation? This cannot be undone.',
-      okText: 'Delete Chat',
-      cancelText: 'Cancel',
-      isDanger: true,
-      icon: 'fa-solid fa-trash-can'
-    });
+    const targetContact = window.ContactsModule ? window.ContactsModule.contacts.find(c => c.id === contactId) : null;
+    const contactObj = targetContact || this.activeContact || { id: contactId };
 
-    if (!confirmed) return;
+    const choice = await window.showDeleteChoiceModal(
+      'Delete Conversation?',
+      'Choose how you want to delete this chat conversation.'
+    );
+
+    if (!choice) return;
 
     this.deletedChats[contactId] = true;
     delete this.messages[contactId];
@@ -453,16 +471,147 @@ const ChatModule = {
     localStorage.setItem('tchat_deleted_chats', JSON.stringify(this.deletedChats));
     localStorage.setItem('tchat_pinned_chats', JSON.stringify(this.pinnedChats));
 
+    if (choice === 'everyone') {
+      if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
+        const chatId = this.getChatRoomId(contactObj);
+        window.AppConfig.db.collection('chats').doc(chatId).delete()
+          .catch(err => console.warn('Firestore room delete notice:', err));
+      }
+      if (window.showToast) window.showToast('Chat deleted for everyone', 'info');
+    } else {
+      if (window.showToast) window.showToast('Chat deleted for you', 'info');
+    }
+
     this.closeChatItemMenu();
 
     if (this.activeContact && (this.activeContact.id === contactId || (this.activeContact.phone && this.activeContact.phone === contactId))) {
       this.closeConversation();
     }
 
-    if (window.showToast) {
-      window.showToast('Chat deleted', 'info');
+    this.renderChatsList();
+  },
+
+  toggleMessageSelection(msgId) {
+    if (!msgId) return;
+
+    if (this.selectedMessageIds.has(msgId)) {
+      this.selectedMessageIds.delete(msgId);
+    } else {
+      this.selectedMessageIds.add(msgId);
     }
 
+    this.isSelectionMode = this.selectedMessageIds.size > 0;
+    this.updateSelectionUI();
+  },
+
+  clearMessageSelection() {
+    this.selectedMessageIds.clear();
+    this.isSelectionMode = false;
+    this.updateSelectionUI();
+  },
+
+  updateSelectionUI() {
+    const selectionBar = document.getElementById('chat-selection-bar');
+    const header = document.getElementById('chat-header');
+    const countLabel = document.getElementById('selection-count-label');
+
+    if (this.isSelectionMode) {
+      if (header) header.classList.add('selection-active');
+      if (selectionBar) selectionBar.classList.remove('hidden');
+      if (countLabel) countLabel.textContent = `${this.selectedMessageIds.size} Selected`;
+    } else {
+      if (header) header.classList.remove('selection-active');
+      if (selectionBar) selectionBar.classList.add('hidden');
+    }
+
+    const container = document.getElementById('chat-messages-container');
+    if (container) {
+      container.querySelectorAll('.message-bubble').forEach(bubble => {
+        const id = bubble.id;
+        if (this.selectedMessageIds.has(id)) {
+          bubble.classList.add('selected');
+          if (!bubble.querySelector('.message-select-checkbox')) {
+            const chk = document.createElement('div');
+            chk.className = 'message-select-checkbox';
+            chk.innerHTML = '<i class="fa-solid fa-check"></i>';
+            bubble.appendChild(chk);
+          }
+        } else {
+          bubble.classList.remove('selected');
+          const chk = bubble.querySelector('.message-select-checkbox');
+          if (chk) chk.remove();
+        }
+      });
+    }
+  },
+
+  copySelectedMessages() {
+    if (this.selectedMessageIds.size === 0 || !this.activeContact) return;
+
+    const msgs = this.messages[this.activeContact.id] || [];
+    const selectedMsgs = msgs.filter(m => this.selectedMessageIds.has(m.id));
+
+    const textToCopy = selectedMsgs.map(m => {
+      if (m.type === 'image') return '[📷 Photo]';
+      if (m.type === 'voice') return '[🎤 Voice Note]';
+      return m.text || '';
+    }).filter(Boolean).join('\n');
+
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        if (window.showToast) window.showToast(`${selectedMsgs.length} message(s) copied to clipboard`, 'success');
+      }).catch(() => {
+        if (window.showToast) window.showToast('Could not copy messages', 'error');
+      });
+    }
+
+    this.clearMessageSelection();
+  },
+
+  async deleteSingleMessage(msgId) {
+    if (!msgId) return;
+    this.selectedMessageIds.clear();
+    this.selectedMessageIds.add(msgId);
+    this.isSelectionMode = true;
+    await this.deleteSelectedMessages();
+  },
+
+  async deleteSelectedMessages() {
+    if (this.selectedMessageIds.size === 0 || !this.activeContact) return;
+
+    const count = this.selectedMessageIds.size;
+    const contactId = this.activeContact.id;
+    const choice = await window.showDeleteChoiceModal(
+      `Delete ${count} Message${count > 1 ? 's' : ''}?`,
+      'Choose how you want to delete the selected message(s).'
+    );
+
+    if (!choice) return;
+
+    const selectedArray = Array.from(this.selectedMessageIds);
+
+    if (choice === 'everyone') {
+      if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
+        const chatId = this.getChatRoomId(this.activeContact);
+        selectedArray.forEach(mId => {
+          window.AppConfig.db.collection('chats').doc(chatId).collection('messages').doc(mId).delete()
+            .catch(err => console.warn('Firestore msg delete notice:', err));
+        });
+      }
+
+      this.messages[contactId] = (this.messages[contactId] || []).filter(m => !this.selectedMessageIds.has(m.id));
+      try { MockDB.set('messages_' + contactId, this.messages[contactId]); } catch(e){}
+
+      if (window.showToast) window.showToast(`${count} message(s) deleted for everyone`, 'info');
+    } else if (choice === 'me') {
+      this.messages[contactId] = (this.messages[contactId] || []).filter(m => !this.selectedMessageIds.has(m.id));
+      try { MockDB.set('messages_' + contactId, this.messages[contactId]); } catch(e){}
+
+      if (window.showToast) window.showToast(`${count} message(s) deleted for you`, 'info');
+    }
+
+    this.clearMessageSelection();
+    this.renderMessages();
     this.renderChatsList();
   },
 
@@ -538,6 +687,7 @@ const ChatModule = {
 
   closeConversation() {
     this.closeChatSearch();
+    this.clearMessageSelection();
     this.activeContact = null;
     const noChat = document.getElementById('no-chat-selected');
     const activeChat = document.getElementById('active-chat-screen');
@@ -550,6 +700,7 @@ const ChatModule = {
 
   openConversation(contact) {
     this.closeChatSearch();
+    this.clearMessageSelection();
     this.activeContact = contact;
     
     // UI layout active state
@@ -954,10 +1105,13 @@ const ChatModule = {
         reactionHtml = `<div class="message-reactions">${m.reactions.join(' ')}</div>`;
       }
 
+      const isSelected = this.selectedMessageIds.has(m.id);
+
       return `
         <div class="message-row ${isOut ? 'out' : 'in'}">
           <img src="${avatarSrc}" class="message-bubble-avatar" alt="Avatar" title="${isOut ? 'You' : this.escapeHtml(this.activeContact ? this.activeContact.name : '')}">
-          <div class="message-bubble ${isOut ? 'out' : 'in'}" id="${m.id}" ondblclick="ChatModule.quoteMessage('${m.id}')" title="Double click to reply / mention message">
+          <div class="message-bubble ${isOut ? 'out' : 'in'} ${isSelected ? 'selected' : ''}" id="${m.id}" onclick="if(ChatModule.isSelectionMode){ ChatModule.toggleMessageSelection('${m.id}'); }" ondblclick="ChatModule.quoteMessage('${m.id}')" title="Double click to reply / mention message">
+            ${isSelected ? '<div class="message-select-checkbox"><i class="fa-solid fa-check"></i></div>' : ''}
             <button class="message-reply-btn" title="Reply / Mention message" onclick="event.stopPropagation(); ChatModule.quoteMessage('${m.id}')">
               <i class="fa-solid fa-reply"></i>
             </button>

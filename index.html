@@ -407,6 +407,18 @@
                 <button id="btn-next-search-match" class="icon-btn btn-sm" title="Next match"><i class="fa-solid fa-chevron-down"></i></button>
               </div>
             </div>
+
+            <!-- Message Selection Header Overlay -->
+            <div id="chat-selection-bar" class="chat-header-selection hidden">
+              <button id="btn-cancel-selection" class="icon-btn" title="Cancel selection">
+                <i class="fa-solid fa-arrow-left"></i>
+              </button>
+              <span id="selection-count-label" class="selection-count">0 Selected</span>
+              <div class="selection-actions">
+                <button id="btn-copy-selected-messages" class="icon-btn" title="Copy text"><i class="fa-solid fa-copy"></i></button>
+                <button id="btn-delete-selected-messages" class="icon-btn danger" title="Delete selected messages"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+            </div>
           </header>
 
           <!-- Chat Messages Container -->
@@ -707,11 +719,19 @@
       </div>
     </div>
 
-    <!-- CUSTOM CONTEXT MENU (COPY / PASTE) -->
+    <!-- CUSTOM CONTEXT MENU (COPY / PASTE / SELECT / DELETE) -->
     <div id="custom-context-menu" class="custom-context-menu hidden">
       <div id="context-action-copy" class="context-menu-item hidden">
         <i class="fa-solid fa-copy"></i>
-        <span>Copy Message</span>
+        <span>Copy Text</span>
+      </div>
+      <div id="context-action-select" class="context-menu-item hidden">
+        <i class="fa-solid fa-square-check"></i>
+        <span>Select Messages</span>
+      </div>
+      <div id="context-action-delete-msg" class="context-menu-item danger-item hidden">
+        <i class="fa-solid fa-trash-can"></i>
+        <span>Delete Message</span>
       </div>
       <div id="context-action-paste" class="context-menu-item hidden">
         <i class="fa-solid fa-paste"></i>
@@ -742,6 +762,28 @@
         <div class="confirm-actions">
           <button id="btn-confirm-cancel" class="btn btn-secondary">Cancel</button>
           <button id="btn-confirm-ok" class="btn btn-danger">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTERED DELETE CHOICE MODAL (DELETE FOR ME / DELETE FOR EVERYONE) -->
+    <div id="delete-choice-modal" class="modal center-modal">
+      <div class="confirm-card">
+        <div class="confirm-icon-wrapper danger">
+          <i class="fa-solid fa-trash-can"></i>
+        </div>
+        <h3 id="delete-modal-title">Delete Chat?</h3>
+        <p id="delete-modal-subtext">Choose how you want to delete this conversation.</p>
+        <div class="delete-choice-actions">
+          <button id="btn-delete-for-everyone" class="btn btn-danger full-width">
+            <i class="fa-solid fa-users"></i> Delete for Everyone
+          </button>
+          <button id="btn-delete-for-me" class="btn btn-warning full-width">
+            <i class="fa-solid fa-user"></i> Delete for Me
+          </button>
+          <button id="btn-delete-choice-cancel" class="btn btn-secondary full-width">
+            Cancel
+          </button>
         </div>
       </div>
     </div>

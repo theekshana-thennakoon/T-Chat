@@ -137,12 +137,71 @@ const UIModule = {
     this.bindContextMenuAndLongPress();
   },
 
+/* Global Centered Delete Choice Modal System (Delete for Me vs Delete for Everyone) */
+window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choose how you want to delete this conversation.') {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('delete-choice-modal');
+    const titleEl = document.getElementById('delete-modal-title');
+    const subtextEl = document.getElementById('delete-modal-subtext');
+    const btnEveryone = document.getElementById('btn-delete-for-everyone');
+    const btnMe = document.getElementById('btn-delete-for-me');
+    const btnCancel = document.getElementById('btn-delete-choice-cancel');
+
+    if (!modal) {
+      resolve(null);
+      return;
+    }
+
+    if (titleEl) titleEl.textContent = title;
+    if (subtextEl) subtextEl.textContent = subtext;
+
+    const handleEveryone = () => {
+      cleanup();
+      modal.classList.remove('active');
+      resolve('everyone');
+    };
+
+    const handleMe = () => {
+      cleanup();
+      modal.classList.remove('active');
+      resolve('me');
+    };
+
+    const handleCancel = () => {
+      cleanup();
+      modal.classList.remove('active');
+      resolve(null);
+    };
+
+    const handleBackdrop = (e) => {
+      if (e.target === modal) handleCancel();
+    };
+
+    const cleanup = () => {
+      if (btnEveryone) btnEveryone.removeEventListener('click', handleEveryone);
+      if (btnMe) btnMe.removeEventListener('click', handleMe);
+      if (btnCancel) btnCancel.removeEventListener('click', handleCancel);
+      modal.removeEventListener('click', handleBackdrop);
+    };
+
+    if (btnEveryone) btnEveryone.addEventListener('click', handleEveryone);
+    if (btnMe) btnMe.addEventListener('click', handleMe);
+    if (btnCancel) btnCancel.addEventListener('click', handleCancel);
+    modal.addEventListener('click', handleBackdrop);
+
+    modal.classList.add('active');
+  });
+};
+
   bindContextMenuAndLongPress() {
     const menu = document.getElementById('custom-context-menu');
     const itemCopy = document.getElementById('context-action-copy');
+    const itemSelect = document.getElementById('context-action-select');
+    const itemDeleteMsg = document.getElementById('context-action-delete-msg');
     const itemPaste = document.getElementById('context-action-paste');
 
     let currentTargetMsgText = '';
+    let currentTargetMsgId = '';
     let currentTargetInput = null;
 
     const hideContextMenu = () => {
@@ -152,25 +211,33 @@ const UIModule = {
     window.addEventListener('click', hideContextMenu);
     window.addEventListener('scroll', hideContextMenu, true);
 
-    const showContextMenuAt = (x, y, showCopy, showPaste, msgText, inputEl) => {
+    const showContextMenuAt = (x, y, showMsgActions, showPaste, msgText, msgId, inputEl) => {
       if (!menu) return;
 
       currentTargetMsgText = msgText || '';
+      currentTargetMsgId = msgId || '';
       currentTargetInput = inputEl || null;
 
-      if (showCopy) itemCopy.classList.remove('hidden');
-      else itemCopy.classList.add('hidden');
+      if (showMsgActions) {
+        if (itemCopy) itemCopy.classList.remove('hidden');
+        if (itemSelect) itemSelect.classList.remove('hidden');
+        if (itemDeleteMsg) itemDeleteMsg.classList.remove('hidden');
+      } else {
+        if (itemCopy) itemCopy.classList.add('hidden');
+        if (itemSelect) itemSelect.classList.add('hidden');
+        if (itemDeleteMsg) itemDeleteMsg.classList.add('hidden');
+      }
 
-      if (showPaste) itemPaste.classList.remove('hidden');
-      else itemPaste.classList.add('hidden');
+      if (showPaste && itemPaste) itemPaste.classList.remove('hidden');
+      else if (itemPaste) itemPaste.classList.add('hidden');
 
-      if (!showCopy && !showPaste) {
+      if (!showMsgActions && !showPaste) {
         hideContextMenu();
         return;
       }
 
-      const menuWidth = 175;
-      const menuHeight = 90;
+      const menuWidth = 180;
+      const menuHeight = 140;
       const posX = Math.min(x, window.innerWidth - menuWidth - 10);
       const posY = Math.min(y, window.innerHeight - menuHeight - 10);
 
@@ -181,19 +248,20 @@ const UIModule = {
 
     // 1. Desktop / Laptop Right Click Listener
     window.addEventListener('contextmenu', (e) => {
-      e.preventDefault(); // Disable default context menu globally
+      e.preventDefault();
 
-      const messageBubble = e.target.closest('.message-bubble') || e.target.closest('.message-row');
+      const messageBubble = e.target.closest('.message-bubble');
       const inputEl = e.target.closest('input, textarea');
 
       if (messageBubble) {
         const textP = messageBubble.querySelector('p');
         const textQuote = messageBubble.querySelector('.quote-body-text');
         const msgText = textP ? textP.textContent : (textQuote ? textQuote.textContent : messageBubble.textContent);
-        
-        showContextMenuAt(e.clientX, e.clientY, true, false, msgText, null);
+        const msgId = messageBubble.id || '';
+
+        showContextMenuAt(e.clientX, e.clientY, true, false, msgText, msgId, null);
       } else if (inputEl) {
-        showContextMenuAt(e.clientX, e.clientY, false, true, '', inputEl);
+        showContextMenuAt(e.clientX, e.clientY, false, true, '', '', inputEl);
       } else {
         hideContextMenu();
       }
@@ -208,7 +276,7 @@ const UIModule = {
       const target = touch.target;
 
       longPressTimer = setTimeout(() => {
-        const messageBubble = target.closest('.message-bubble') || target.closest('.message-row');
+        const messageBubble = target.closest('.message-bubble');
         const inputEl = target.closest('input, textarea');
 
         if (messageBubble || inputEl) {
@@ -216,9 +284,10 @@ const UIModule = {
             const textP = messageBubble.querySelector('p');
             const textQuote = messageBubble.querySelector('.quote-body-text');
             const msgText = textP ? textP.textContent : (textQuote ? textQuote.textContent : messageBubble.textContent);
-            showContextMenuAt(touch.clientX, touch.clientY, true, false, msgText, null);
+            const msgId = messageBubble.id || '';
+            showContextMenuAt(touch.clientX, touch.clientY, true, false, msgText, msgId, null);
           } else if (inputEl) {
-            showContextMenuAt(touch.clientX, touch.clientY, false, true, '', inputEl);
+            showContextMenuAt(touch.clientX, touch.clientY, false, true, '', '', inputEl);
           }
         }
       }, 450);
@@ -238,6 +307,36 @@ const UIModule = {
         e.stopPropagation();
         hideContextMenu();
         if (currentTargetMsgText) {
+          navigator.clipboard.writeText(currentTargetMsgText).then(() => {
+            window.showToast('Message copied to clipboard!', 'success');
+          }).catch(() => {
+            window.showToast('Could not copy message', 'error');
+          });
+        }
+      };
+    }
+
+    // 4. Bind Select Action
+    if (itemSelect) {
+      itemSelect.onclick = (e) => {
+        e.stopPropagation();
+        hideContextMenu();
+        if (currentTargetMsgId && window.ChatModule) {
+          window.ChatModule.toggleMessageSelection(currentTargetMsgId);
+        }
+      };
+    }
+
+    // 5. Bind Delete Message Action
+    if (itemDeleteMsg) {
+      itemDeleteMsg.onclick = (e) => {
+        e.stopPropagation();
+        hideContextMenu();
+        if (currentTargetMsgId && window.ChatModule) {
+          window.ChatModule.deleteSingleMessage(currentTargetMsgId);
+        }
+      };
+    }
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(currentTargetMsgText).then(() => {
               window.showToast('Message copied to clipboard!', 'success');
