@@ -2119,6 +2119,57 @@ mark.search-highlight {
   display: none !important;
 }
 
+.context-menu-item.danger-item {
+  color: #ff5252;
+}
+
+.context-menu-item.danger-item:hover {
+  background-color: rgba(255, 82, 82, 0.15);
+  color: #ff5252;
+}
+
+.context-menu-item.danger-item i {
+  color: #ff5252;
+}
+
+/* Chat Item 3-Dots Action Button & Pin Icon */
+.chat-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pin-icon {
+  font-size: 0.78rem;
+  color: var(--accent-green);
+  transform: rotate(45deg);
+}
+
+.chat-item-menu-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.chat-item-menu-btn:hover {
+  opacity: 1;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.chat-item:hover .chat-item-menu-btn {
+  opacity: 1;
+}
+
 
 
 

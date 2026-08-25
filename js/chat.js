@@ -12,6 +12,9 @@ const ChatModule = {
   searchMatches: [],
   currentMatchIndex: -1,
   searchQuery: '',
+  pinnedChats: JSON.parse(localStorage.getItem('tchat_pinned_chats') || '{}'),
+  deletedChats: JSON.parse(localStorage.getItem('tchat_deleted_chats') || '{}'),
+  selectedChatForMenu: null,
 
   init() {
     this.bindEvents();
@@ -202,6 +205,34 @@ const ChatModule = {
     if (btnNextMatch) {
       btnNextMatch.addEventListener('click', () => this.navigateSearchMatch(1));
     }
+
+    // Chat Item Context Menu (Pin / Delete) Action Listeners
+    const btnPinAction = document.getElementById('chat-item-action-pin');
+    if (btnPinAction) {
+      btnPinAction.addEventListener('click', () => {
+        if (this.selectedChatForMenu) {
+          this.togglePinChat(this.selectedChatForMenu);
+        }
+      });
+    }
+
+    const btnDeleteAction = document.getElementById('chat-item-action-delete');
+    if (btnDeleteAction) {
+      btnDeleteAction.addEventListener('click', () => {
+        if (this.selectedChatForMenu) {
+          this.deleteChat(this.selectedChatForMenu);
+        }
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('chat-item-context-menu');
+      if (menu && !menu.classList.contains('hidden')) {
+        if (!e.target.closest('#chat-item-context-menu') && !e.target.closest('.chat-item-menu-btn')) {
+          this.closeChatItemMenu();
+        }
+      }
+    });
   },
 
   openChatSearch() {
@@ -347,6 +378,74 @@ const ChatModule = {
     if (this.searchMatches.length === 0) return;
     this.currentMatchIndex = (this.currentMatchIndex + direction + this.searchMatches.length) % this.searchMatches.length;
     this.focusMatch(this.currentMatchIndex);
+  },
+
+  toggleChatItemMenu(e, contactId) {
+    e.preventDefault();
+    this.selectedChatForMenu = contactId;
+    const menu = document.getElementById('chat-item-context-menu');
+    const pinText = document.getElementById('chat-item-pin-text');
+    const pinIcon = document.getElementById('chat-item-pin-icon');
+    if (!menu) return;
+
+    const isPinned = !!this.pinnedChats[contactId];
+    if (pinText) pinText.textContent = isPinned ? 'Unpin Chat' : 'Pin Chat';
+    if (pinIcon) pinIcon.className = isPinned ? 'fa-solid fa-thumbtack-slash' : 'fa-solid fa-thumbtack';
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    let top = rect.bottom + 4;
+    let left = rect.left - 120;
+
+    if (left < 10) left = 10;
+    if (top + 100 > window.innerHeight) top = rect.top - 100;
+
+    menu.style.top = top + 'px';
+    menu.style.left = left + 'px';
+    menu.classList.remove('hidden');
+  },
+
+  closeChatItemMenu() {
+    const menu = document.getElementById('chat-item-context-menu');
+    if (menu) menu.classList.add('hidden');
+    this.selectedChatForMenu = null;
+  },
+
+  togglePinChat(contactId) {
+    if (!contactId) return;
+    const isPinned = !this.pinnedChats[contactId];
+    this.pinnedChats[contactId] = isPinned;
+    localStorage.setItem('tchat_pinned_chats', JSON.stringify(this.pinnedChats));
+    this.closeChatItemMenu();
+
+    if (window.showToast) {
+      window.showToast(isPinned ? 'Chat pinned to top' : 'Chat unpinned', 'success');
+    }
+
+    this.renderChatsList();
+  },
+
+  deleteChat(contactId) {
+    if (!contactId) return;
+    if (!confirm('Are you sure you want to delete this conversation?')) return;
+
+    this.deletedChats[contactId] = true;
+    delete this.messages[contactId];
+    delete this.pinnedChats[contactId];
+
+    localStorage.setItem('tchat_deleted_chats', JSON.stringify(this.deletedChats));
+    localStorage.setItem('tchat_pinned_chats', JSON.stringify(this.pinnedChats));
+
+    this.closeChatItemMenu();
+
+    if (this.activeContact && (this.activeContact.id === contactId || (this.activeContact.phone && this.activeContact.phone === contactId))) {
+      this.closeConversation();
+    }
+
+    if (window.showToast) {
+      window.showToast('Chat deleted', 'info');
+    }
+
+    this.renderChatsList();
   },
 
   openContactProfileModal() {
@@ -1081,11 +1180,27 @@ const ChatModule = {
 
     const contacts = window.ContactsModule.contacts;
     
-    // Filter to only contacts with active message history or currently open chat
+    // Filter to only non-deleted contacts with active message history, currently open chat, or pinned state
     const activeConversations = contacts.filter(c => {
+      if (this.deletedChats[c.id]) return false;
       const msgs = this.messages[c.id] || [];
       const isActive = this.activeContact && this.activeContact.id === c.id;
-      return msgs.length > 0 || isActive;
+      const isPinned = !!this.pinnedChats[c.id];
+      return msgs.length > 0 || isActive || isPinned;
+    });
+
+    // Sort active conversations: Pinned chats first, then by last message timestamp
+    activeConversations.sort((a, b) => {
+      const aPinned = !!this.pinnedChats[a.id];
+      const bPinned = !!this.pinnedChats[b.id];
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+
+      const msgsA = this.messages[a.id] || [];
+      const msgsB = this.messages[b.id] || [];
+      const lastA = msgsA.length > 0 ? (msgsA[msgsA.length - 1].timestamp || 0) : 0;
+      const lastB = msgsB.length > 0 ? (msgsB[msgsB.length - 1].timestamp || 0) : 0;
+      return lastB - lastA;
     });
 
     if (activeConversations.length === 0 && !this.isLoadingChats) {
@@ -1102,20 +1217,27 @@ const ChatModule = {
       const snippet = lastMsg ? (lastMsg.type === 'image' ? '📷 Photo' : (lastMsg.type === 'voice' ? '🎤 Voice note' : lastMsg.text)) : c.about;
       const time = lastMsg ? new Date(lastMsg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
       const isActive = this.activeContact && this.activeContact.id === c.id;
+      const isPinned = !!this.pinnedChats[c.id];
 
       return `
-        <div class="chat-item ${isActive ? 'active' : ''}" onclick="ContactsModule.startChatWithContact('${c.id}')">
+        <div class="chat-item ${isActive ? 'active' : ''} ${isPinned ? 'pinned' : ''}" onclick="ContactsModule.startChatWithContact('${c.id}')">
           <div class="chat-avatar-wrapper">
-            <img src="${c.avatar}" alt="${c.name}">
+            <img src="${c.avatar}" alt="${this.escapeHtml(c.name)}">
             ${c.online ? '<span class="online-dot"></span>' : ''}
           </div>
           <div class="chat-details">
             <div class="chat-row-top">
-              <span class="chat-name">${c.name}</span>
+              <span class="chat-name">${this.escapeHtml(c.name)}</span>
               <span class="chat-time">${time}</span>
             </div>
             <div class="chat-row-bottom">
-              <span class="chat-snippet">${snippet}</span>
+              <span class="chat-snippet">${this.escapeHtml(snippet || '')}</span>
+              <div class="chat-item-actions">
+                ${isPinned ? '<i class="fa-solid fa-thumbtack pin-icon" title="Pinned chat"></i>' : ''}
+                <button class="chat-item-menu-btn" title="Chat options" onclick="event.stopPropagation(); ChatModule.toggleChatItemMenu(event, '${c.id}')">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
