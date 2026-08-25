@@ -689,6 +689,7 @@ const ChatModule = {
     this.closeChatSearch();
     this.clearMessageSelection();
     this.activeContact = null;
+    localStorage.removeItem('tchat_active_chat_id');
     const noChat = document.getElementById('no-chat-selected');
     const activeChat = document.getElementById('active-chat-screen');
     if (noChat) noChat.classList.add('active');
@@ -702,6 +703,9 @@ const ChatModule = {
     this.closeChatSearch();
     this.clearMessageSelection();
     this.activeContact = contact;
+    if (contact && contact.id) {
+      localStorage.setItem('tchat_active_chat_id', contact.id);
+    }
     
     // UI layout active state
     document.getElementById('no-chat-selected').classList.remove('active');
@@ -1521,7 +1525,20 @@ const ChatModule = {
     setTimeout(() => {
       this.isLoadingChats = false;
       this.renderChatsList();
+      this.restoreActiveChatOnReload();
     }, 450);
+  },
+
+  restoreActiveChatOnReload() {
+    const savedChatId = localStorage.getItem('tchat_active_chat_id');
+    if (!savedChatId) return;
+
+    if (window.ContactsModule && window.ContactsModule.contacts) {
+      const contact = window.ContactsModule.contacts.find(c => c.id === savedChatId || (c.phone && c.phone.replace(/\D/g, '') === savedChatId.replace(/\D/g, '')));
+      if (contact) {
+        this.openConversation(contact);
+      }
+    }
   },
 
   escapeHtml(str) {

@@ -34,4 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (window.AuthModule) {
     window.AuthModule.init();
   }
+
+  // 5. Safety Failsafe: Always dismiss splash screen after initialization
+  setTimeout(() => {
+    if (window.hideSplashScreen) {
+      window.hideSplashScreen(0);
+    }
+  }, 800);
 });

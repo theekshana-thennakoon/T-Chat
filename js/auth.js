@@ -9,7 +9,11 @@ const AuthModule = {
 
   init() {
     this.bindEvents();
-    this.autoDetectCountry();
+    try {
+      this.autoDetectCountry();
+    } catch (e) {
+      console.warn('Auto detect country warning:', e);
+    }
     this.checkSession();
   },
 

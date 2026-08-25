@@ -116,16 +116,20 @@ window.showConfirm = function(options = {}) {
 };
 
 // Global Splash Screen Controller
-window.hideSplashScreen = function(delay = 650) {
-  setTimeout(() => {
-    const splash = document.getElementById('splash-screen');
-    if (splash) {
-      splash.classList.add('hidden');
-      setTimeout(() => {
-        splash.style.display = 'none';
-      }, 550);
-    }
-  }, delay);
+window.hideSplashScreen = function(delay = 500) {
+  const splash = document.getElementById('splash-screen');
+  if (!splash) return;
+
+  const dismiss = () => {
+    splash.classList.add('hidden');
+    splash.style.display = 'none';
+  };
+
+  if (delay <= 0) {
+    dismiss();
+  } else {
+    setTimeout(dismiss, delay);
+  }
 };
 
 const UIModule = {
@@ -483,9 +487,13 @@ window.showDeleteChoiceModal = function(title = 'Delete Chat?', subtext = 'Choos
       });
     }
 
-    if (btnChatOptions && settingsModal) {
-      btnChatOptions.addEventListener('click', () => {
-        settingsModal.classList.add('active');
+    if (btnChatOptions) {
+      btnChatOptions.title = "Close Chat";
+      btnChatOptions.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.ChatModule) {
+          window.ChatModule.closeConversation();
+        }
       });
     }
 

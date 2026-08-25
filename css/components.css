@@ -1932,9 +1932,10 @@ mark.search-highlight {
 }
 
 .splash-screen.hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  display: none !important;
 }
 
 .splash-content {
