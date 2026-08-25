@@ -2667,6 +2667,53 @@ mark.search-highlight {
   display: block;
 }
 
+/* Animated Emoji Messages */
+.emoji-only-text {
+  font-size: 2.8rem;
+  line-height: 1.25;
+  margin: 2px 0;
+  display: inline-block;
+  transform-origin: center center;
+  animation: emojiPopBounce 3.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) 1 forwards;
+  will-change: transform;
+}
+
+.message-bubble.emoji-bubble {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  padding: 4px 6px !important;
+}
+
+@keyframes emojiPopBounce {
+  0% {
+    transform: scale(0.2) rotate(-12deg);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.38) rotate(9deg);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(0.88) rotate(-6deg);
+  }
+  45% {
+    transform: scale(1.22) rotate(4deg);
+  }
+  60% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  75% {
+    transform: scale(1.09) rotate(1deg);
+  }
+  90% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
 
 
 

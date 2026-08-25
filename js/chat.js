@@ -1405,6 +1405,19 @@ const ChatModule = {
     window.open(url, '_blank');
   },
 
+  isEmojiOnly(text) {
+    if (!text || typeof text !== 'string') return false;
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length > 12) return false;
+    try {
+      const emojiRegex = /^[\p{Extended_Pictographic}\s\u200d\ufe0f]+$/u;
+      return emojiRegex.test(trimmed);
+    } catch(e) {
+      const fallbackRegex = /^[\u00a9\u00ae\u2000-\u3300\ud83c\ud000-\udfff\ud83d\ud000-\udfff\ud83e\ud000-\udfff\u2600-\u27bf\s]+$/;
+      return fallbackRegex.test(trimmed);
+    }
+  },
+
   downloadDocumentFile() {
     if (!this.activeViewingDocUrl) return;
     const fileName = this.activeViewingDocName || 'download';
@@ -1615,8 +1628,15 @@ const ChatModule = {
           </div>
         `;
       } else {
-        bodyHtml = `<p>${this.escapeHtml(m.text)}</p>`;
+        const isEmojiMsg = this.isEmojiOnly(m.text);
+        if (isEmojiMsg) {
+          bodyHtml = `<p class="emoji-only-text">${this.escapeHtml(m.text)}</p>`;
+        } else {
+          bodyHtml = `<p>${this.escapeHtml(m.text)}</p>`;
+        }
       }
+
+      const isEmojiOnlyBubble = (m.type === 'text' || !m.type) && this.isEmojiOnly(m.text);
 
       let senderTagHtml = '';
       if (!isOut && this.activeContact) {
@@ -1633,7 +1653,7 @@ const ChatModule = {
       return `
         <div class="message-row ${isOut ? 'out' : 'in'}">
           <img src="${avatarSrc}" class="message-bubble-avatar" alt="Avatar" title="${isOut ? 'You' : this.escapeHtml(this.activeContact ? this.activeContact.name : '')}">
-          <div class="message-bubble ${isOut ? 'out' : 'in'} ${isSelected ? 'selected' : ''}" id="${m.id}" onclick="if(ChatModule.isSelectionMode){ ChatModule.toggleMessageSelection('${m.id}'); }" ondblclick="ChatModule.quoteMessage('${m.id}')" title="Double click to reply / mention message">
+          <div class="message-bubble ${isOut ? 'out' : 'in'} ${isEmojiOnlyBubble ? 'emoji-bubble' : ''} ${isSelected ? 'selected' : ''}" id="${m.id}" onclick="if(ChatModule.isSelectionMode){ ChatModule.toggleMessageSelection('${m.id}'); }" ondblclick="ChatModule.quoteMessage('${m.id}')" title="Double click to reply / mention message">
             ${isSelected ? '<div class="message-select-checkbox"><i class="fa-solid fa-check"></i></div>' : ''}
             <button class="message-reply-btn" title="Reply / Mention message" onclick="event.stopPropagation(); ChatModule.quoteMessage('${m.id}')">
               <i class="fa-solid fa-reply"></i>
