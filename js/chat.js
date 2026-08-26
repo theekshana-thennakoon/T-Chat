@@ -2527,19 +2527,23 @@ const ChatModule = {
 
   createGroupChat(groupName, avatarUrl, selectedMemberIds, selectedMemberNames = []) {
     const groupId = 'group_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || MockDB.get('current_session') || { name: 'You' };
-    
-    const allMemberNames = [currentUser.name || 'You', ...selectedMemberNames];
-    
+    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || MockDB.get('current_session') || { name: 'You', uid: 'user_me' };
+    const creatorName = currentUser.name || 'You';
+    const creatorId = currentUser.uid || currentUser.id || 'user_me';
+
+    // Deduplicate IDs and names ensuring creator is always present first
+    const finalMemberIds = Array.from(new Set([creatorId, ...selectedMemberIds]));
+    let finalMemberNames = Array.from(new Set([creatorName, ...selectedMemberNames]));
+
     const groupContact = {
       id: groupId,
       name: groupName,
       avatar: avatarUrl || ('https://api.dicebear.com/7.x/shapes/svg?seed=' + encodeURIComponent(groupName)),
-      about: `${allMemberNames.length} members: ${allMemberNames.join(', ')}`,
+      about: `${finalMemberNames.length} members: ${finalMemberNames.join(', ')}`,
       isGroup: true,
-      members: selectedMemberIds,
-      memberNames: allMemberNames,
-      createdBy: currentUser.name || 'You'
+      members: finalMemberIds,
+      memberNames: finalMemberNames,
+      createdBy: creatorName
     };
 
     if (window.ContactsModule) {
@@ -2555,7 +2559,7 @@ const ChatModule = {
       id: 'sys_' + Date.now(),
       senderId: 'system',
       senderName: 'System',
-      text: `${currentUser.name || 'You'} created group "${groupName}" with ${selectedMemberIds.length} members`,
+      text: `${creatorName} created group "${groupName}" (${finalMemberNames.length} members, Admin: ${creatorName})`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'read',
       isSystem: true
@@ -2569,7 +2573,7 @@ const ChatModule = {
     }
 
     if (window.showToast) {
-      window.showToast(`Group "${groupName}" created successfully!`, 'success');
+      window.showToast(`Group "${groupName}" created with you as Admin!`, 'success');
     }
 
     this.renderChatsList();

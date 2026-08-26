@@ -316,14 +316,24 @@ const ContactsModule = {
     const countEl = document.getElementById('selected-members-count');
     if (!container) return;
 
-    if (countEl) countEl.textContent = '0';
+    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || MockDB.get('current_session') || { name: 'You', uid: 'user_me' };
+    const myName = currentUser.name || 'You';
+    const myAvatar = currentUser.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user1';
 
-    if (!this.contacts || this.contacts.length === 0) {
-      container.innerHTML = '<p style="padding:12px; font-size:0.85rem; color:var(--text-muted); text-align:center;">No contacts available to add to group.</p>';
-      return;
-    }
+    let html = `
+      <label class="group-member-item creator-item" style="background-color: rgba(0, 132, 255, 0.12); border-radius: 8px;">
+        <input type="checkbox" class="group-member-checkbox creator-checkbox" value="${currentUser.uid || 'user_me'}" checked disabled>
+        <img class="group-member-avatar" src="${myAvatar}" alt="${myName}">
+        <div class="group-member-info">
+          <span class="group-member-name">${myName} <small style="color:var(--primary-color, #0084ff); font-weight:700;">(Group Admin / You)</small></span>
+          <span class="group-member-phone">Automatically added</span>
+        </div>
+      </label>
+    `;
 
-    container.innerHTML = this.contacts.map(c => `
+    const otherContacts = (this.contacts || []).filter(c => !c.isGroup);
+
+    html += otherContacts.map(c => `
       <label class="group-member-item">
         <input type="checkbox" class="group-member-checkbox" value="${c.id}" onchange="ContactsModule.updateSelectedGroupMembersCount()">
         <img class="group-member-avatar" src="${c.avatar}" alt="${c.name}">
@@ -333,6 +343,9 @@ const ContactsModule = {
         </div>
       </label>
     `).join('');
+
+    container.innerHTML = html;
+    this.updateSelectedGroupMembersCount();
   },
 
   updateSelectedGroupMembersCount() {
@@ -351,18 +364,22 @@ const ContactsModule = {
       return;
     }
 
-    const checkedBoxes = document.querySelectorAll('.group-member-checkbox:checked');
-    if (checkedBoxes.length === 0) {
-      if (window.showToast) window.showToast('Please select at least one contact for the group', 'warning');
-      else alert('Please select at least one contact for the group');
+    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || MockDB.get('current_session') || { name: 'You', uid: 'user_me' };
+    const creatorId = currentUser.uid || currentUser.id || 'user_me';
+    const creatorName = currentUser.name || 'You';
+
+    const otherCheckedBoxes = document.querySelectorAll('.group-member-checkbox:checked:not(.creator-checkbox)');
+    if (otherCheckedBoxes.length === 0) {
+      if (window.showToast) window.showToast('Please select at least one contact to add to the group', 'warning');
+      else alert('Please select at least one contact to add to the group');
       return;
     }
 
-    const selectedMemberIds = Array.from(checkedBoxes).map(cb => cb.value);
-    const selectedMemberNames = selectedMemberIds.map(id => {
-      const c = this.contacts.find(x => x.id === id);
+    const selectedMemberIds = [creatorId, ...Array.from(otherCheckedBoxes).map(cb => cb.value)];
+    const selectedMemberNames = [creatorName, ...Array.from(otherCheckedBoxes).map(cb => {
+      const c = this.contacts.find(x => x.id === cb.value);
       return c ? c.name : 'Member';
-    });
+    })];
 
     const avatarImg = document.getElementById('group-avatar-img');
     const avatarUrl = avatarImg ? avatarImg.src : '';
