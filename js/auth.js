@@ -287,25 +287,33 @@ const AuthModule = {
   },
 
   async handleSaveTabProfile() {
-    if (!window.AppConfig.currentUser) return;
+    const user = this.currentUser || (window.AppConfig && window.AppConfig.currentUser) || MockDB.get('current_session');
+    if (!user) {
+      if (window.showToast) window.showToast('User session not found. Please log in again.', 'error');
+      return;
+    }
+
     const name = document.getElementById('my-tab-name-input').value.trim() || 'TChat User';
     const about = document.getElementById('my-tab-about-input').value.trim() || 'Hey there! I am using TChat.';
     const avatarSrc = document.getElementById('my-tab-avatar-img').src;
 
     const updatedUser = {
-      ...window.AppConfig.currentUser,
+      ...user,
       name: name,
       about: about,
       avatar: avatarSrc,
       lastSeen: new Date().toISOString()
     };
 
-    window.AppConfig.currentUser = updatedUser;
+    this.currentUser = updatedUser;
+    if (window.AppConfig) window.AppConfig.currentUser = updatedUser;
     MockDB.set('current_session', updatedUser);
-    MockDB.set('user_profile_' + updatedUser.uid, updatedUser);
+    if (updatedUser.uid) {
+      MockDB.set('user_profile_' + updatedUser.uid, updatedUser);
+    }
 
     // Save to Firebase Firestore 'users' collection
-    if (window.AppConfig.isLiveFirebase && window.AppConfig.db) {
+    if (window.AppConfig.isLiveFirebase && window.AppConfig.db && updatedUser.uid) {
       try {
         await window.AppConfig.db.collection('users').doc(updatedUser.uid).set({
           uid: updatedUser.uid,
@@ -322,7 +330,12 @@ const AuthModule = {
       }
     }
 
-    alert('Profile updated successfully!');
+    if (window.showToast) {
+      window.showToast('Profile updated successfully!', 'success');
+    } else {
+      alert('Profile updated successfully!');
+    }
+
     this.completeLogin(updatedUser);
 
     // Refresh chat list & active conversation messages with new avatar

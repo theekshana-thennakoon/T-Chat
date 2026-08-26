@@ -45,6 +45,8 @@ const ChatModule = {
     activeBlobUrl: null
   },
 
+  documentCache: {},
+
   init() {
     this.bindEvents();
     this.initPdfReaderControls();
@@ -1452,6 +1454,27 @@ const ChatModule = {
     });
   },
 
+  openDocumentByMsgId(msgId) {
+    let msg = this.documentCache[msgId];
+    if (!msg && this.activeContact && this.messages[this.activeContact.id]) {
+      msg = this.messages[this.activeContact.id].find(m => m.id === msgId);
+    }
+    if (!msg) {
+      // Search all conversation message lists
+      for (const catKey in this.messages) {
+        const found = (this.messages[catKey] || []).find(m => m.id === msgId);
+        if (found) { msg = found; break; }
+      }
+    }
+    if (msg) {
+      const url = msg.fileUrl || msg.mediaUrl || msg.url;
+      const fileName = msg.fileName || msg.text || 'Document';
+      this.openDocumentFile(url, fileName);
+    } else {
+      if (window.showToast) window.showToast('Document unavailable', 'warning');
+    }
+  },
+
   openDocumentFile(dataUrl, fileName = 'Document') {
     if (!dataUrl) {
       if (window.showToast) window.showToast('Document content unavailable', 'warning');
@@ -1994,16 +2017,14 @@ const ChatModule = {
           </div>
         `;
       } else if (m.type === 'document' || (m.text && m.text.startsWith('📄'))) {
+        this.documentCache[m.id] = m;
         const rawText = m.text || '';
         const fileName = m.fileName || rawText.replace(/^📄\s*/, '').replace(/\s*\([\d.]+\s*KB\)$/, '') || 'Document';
         const fileSize = m.fileSize || (rawText.match(/\(([\d.]+\s*KB)\)/) ? rawText.match(/\(([\d.]+\s*KB)\)/)[1] : 'File');
         const isPdf = m.isPdf || fileName.toLowerCase().endsWith('.pdf') || (m.fileUrl && m.fileUrl.startsWith('data:application/pdf'));
 
-        const encodedName = this.escapeHtml(fileName).replace(/'/g, "\\'");
-        const encodedUrl = (m.fileUrl || m.mediaUrl || '').replace(/'/g, "\\'");
-
         bodyHtml = `
-          <div class="document-card" onclick="event.stopPropagation(); ChatModule.openDocumentFile('${encodedUrl}', '${encodedName}')" title="Click to open ${this.escapeHtml(fileName)}">
+          <div class="document-card" onclick="event.stopPropagation(); ChatModule.openDocumentByMsgId('${m.id}')" title="Click to open ${this.escapeHtml(fileName)}">
             <div class="doc-icon-wrapper ${isPdf ? 'pdf' : ''}">
               <i class="fa-solid ${isPdf ? 'fa-file-pdf' : 'fa-file-lines'}"></i>
             </div>
@@ -2454,7 +2475,7 @@ const ChatModule = {
           </div>
           <div class="chat-details">
             <div class="chat-row-top">
-              <span class="chat-name">${this.escapeHtml(c.name)}</span>
+              <span class="chat-name">${this.escapeHtml(c.name)}${c.isGroup ? ' <span class="chat-group-badge"><i class="fa-solid fa-users"></i> Group</span>' : ''}</span>
               <span class="chat-time">${time}</span>
             </div>
             <div class="chat-row-bottom">
@@ -2502,6 +2523,57 @@ const ChatModule = {
         this.openConversation(contact);
       }
     }
+  },
+
+  createGroupChat(groupName, avatarUrl, selectedMemberIds, selectedMemberNames = []) {
+    const groupId = 'group_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || MockDB.get('current_session') || { name: 'You' };
+    
+    const allMemberNames = [currentUser.name || 'You', ...selectedMemberNames];
+    
+    const groupContact = {
+      id: groupId,
+      name: groupName,
+      avatar: avatarUrl || ('https://api.dicebear.com/7.x/shapes/svg?seed=' + encodeURIComponent(groupName)),
+      about: `${allMemberNames.length} members: ${allMemberNames.join(', ')}`,
+      isGroup: true,
+      members: selectedMemberIds,
+      memberNames: allMemberNames,
+      createdBy: currentUser.name || 'You'
+    };
+
+    if (window.ContactsModule) {
+      window.ContactsModule.contacts.unshift(groupContact);
+      window.ContactsModule.saveContacts();
+    }
+
+    if (!this.messages[groupId]) {
+      this.messages[groupId] = [];
+    }
+
+    this.messages[groupId].push({
+      id: 'sys_' + Date.now(),
+      senderId: 'system',
+      senderName: 'System',
+      text: `${currentUser.name || 'You'} created group "${groupName}" with ${selectedMemberIds.length} members`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'read',
+      isSystem: true
+    });
+
+    if (window.AppConfig && window.AppConfig.isLiveFirebase && window.AppConfig.db) {
+      window.AppConfig.db.collection('chats').doc(groupId).set({
+        ...groupContact,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    }
+
+    if (window.showToast) {
+      window.showToast(`Group "${groupName}" created successfully!`, 'success');
+    }
+
+    this.renderChatsList();
+    this.openConversation(groupContact);
   },
 
   escapeHtml(str) {

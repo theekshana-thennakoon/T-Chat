@@ -45,6 +45,37 @@ const ContactsModule = {
     if (btnSave) {
       btnSave.addEventListener('click', () => this.handleSaveManualContact());
     }
+
+    // Group creation button in Contacts tab
+    const btnCreateGroup = document.getElementById('btn-open-create-group-contacts');
+    if (btnCreateGroup) {
+      btnCreateGroup.addEventListener('click', () => this.openCreateGroupModal());
+    }
+
+    const btnCloseGroup = document.getElementById('btn-close-group-modal');
+    const btnCancelGroup = document.getElementById('btn-cancel-create-group');
+    if (btnCloseGroup) btnCloseGroup.onclick = () => this.closeCreateGroupModal();
+    if (btnCancelGroup) btnCancelGroup.onclick = () => this.closeCreateGroupModal();
+
+    const btnConfirmGroup = document.getElementById('btn-confirm-create-group');
+    if (btnConfirmGroup) {
+      btnConfirmGroup.onclick = () => this.handleCreateGroupSubmit();
+    }
+
+    const fileGroupAvatar = document.getElementById('group-avatar-file');
+    if (fileGroupAvatar) {
+      fileGroupAvatar.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const img = document.getElementById('group-avatar-img');
+            if (img) img.src = evt.target.result;
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+    }
   },
 
   // HTML5 Web Contacts Picker API (Mobile Browsers)
@@ -263,6 +294,84 @@ const ContactsModule = {
     if (window.ChatModule) {
       window.ChatModule.openConversation(contact);
     }
+  },
+
+  openCreateGroupModal() {
+    const modal = document.getElementById('create-group-modal');
+    if (modal) {
+      const input = document.getElementById('group-name-input');
+      if (input) input.value = '';
+      this.populateGroupMembersList();
+      modal.classList.add('active');
+    }
+  },
+
+  closeCreateGroupModal() {
+    const modal = document.getElementById('create-group-modal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  populateGroupMembersList() {
+    const container = document.getElementById('group-members-list');
+    const countEl = document.getElementById('selected-members-count');
+    if (!container) return;
+
+    if (countEl) countEl.textContent = '0';
+
+    if (!this.contacts || this.contacts.length === 0) {
+      container.innerHTML = '<p style="padding:12px; font-size:0.85rem; color:var(--text-muted); text-align:center;">No contacts available to add to group.</p>';
+      return;
+    }
+
+    container.innerHTML = this.contacts.map(c => `
+      <label class="group-member-item">
+        <input type="checkbox" class="group-member-checkbox" value="${c.id}" onchange="ContactsModule.updateSelectedGroupMembersCount()">
+        <img class="group-member-avatar" src="${c.avatar}" alt="${c.name}">
+        <div class="group-member-info">
+          <span class="group-member-name">${c.name}</span>
+          <span class="group-member-phone">${c.phone || c.about}</span>
+        </div>
+      </label>
+    `).join('');
+  },
+
+  updateSelectedGroupMembersCount() {
+    const checked = document.querySelectorAll('.group-member-checkbox:checked');
+    const countEl = document.getElementById('selected-members-count');
+    if (countEl) countEl.textContent = checked.length;
+  },
+
+  handleCreateGroupSubmit() {
+    const nameInput = document.getElementById('group-name-input');
+    const groupName = nameInput ? nameInput.value.trim() : '';
+
+    if (!groupName) {
+      if (window.showToast) window.showToast('Please enter a group subject / name', 'warning');
+      else alert('Please enter a group subject / name');
+      return;
+    }
+
+    const checkedBoxes = document.querySelectorAll('.group-member-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+      if (window.showToast) window.showToast('Please select at least one contact for the group', 'warning');
+      else alert('Please select at least one contact for the group');
+      return;
+    }
+
+    const selectedMemberIds = Array.from(checkedBoxes).map(cb => cb.value);
+    const selectedMemberNames = selectedMemberIds.map(id => {
+      const c = this.contacts.find(x => x.id === id);
+      return c ? c.name : 'Member';
+    });
+
+    const avatarImg = document.getElementById('group-avatar-img');
+    const avatarUrl = avatarImg ? avatarImg.src : '';
+
+    if (window.ChatModule) {
+      window.ChatModule.createGroupChat(groupName, avatarUrl, selectedMemberIds, selectedMemberNames);
+    }
+
+    this.closeCreateGroupModal();
   }
 };
 

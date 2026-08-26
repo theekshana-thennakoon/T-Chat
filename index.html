@@ -278,6 +278,14 @@
         <div id="tab-content-contacts" class="tab-pane">
           <div class="contacts-tab-container">
             <div class="contacts-header-actions">
+              <button id="btn-open-create-group-contacts" class="action-tile group-action-tile">
+                <div class="tile-icon" style="background-color: var(--primary-color, #0084ff);"><i class="fa-solid fa-users"></i></div>
+                <div class="tile-text">
+                  <h5>New Group Chat</h5>
+                  <p>Create group with contacts</p>
+                </div>
+              </button>
+
               <button id="btn-import-web-contacts" class="action-tile">
                 <div class="tile-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
                 <div class="tile-text">
@@ -527,6 +535,14 @@
           </div>
 
           <div class="settings-menu-list">
+            <div class="settings-item" id="btn-open-group-from-menu" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: var(--bg-hover); border-radius: var(--radius-sm); margin-bottom: 10px; cursor: pointer;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="item-icon" style="color: var(--primary-color, #0084ff);"><i class="fa-solid fa-users"></i></div>
+                <div class="item-label">Create New Group</div>
+              </div>
+              <i class="fa-solid fa-chevron-right" style="color: var(--text-muted); font-size: 0.8rem;"></i>
+            </div>
+
             <div class="settings-item" id="toggle-dark-mode" style="display: flex; align-items: center; justify-content: space-between; padding: 14px; background: var(--bg-hover); border-radius: var(--radius-sm); margin-bottom: 10px;">
               <div style="display: flex; align-items: center; gap: 12px;">
                 <div class="item-icon"><i class="fa-solid fa-moon"></i></div>
@@ -558,6 +574,45 @@
               <div class="item-label" style="font-weight: 600;">Log Out</div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CREATE GROUP CHAT MODAL -->
+    <div id="create-group-modal" class="modal center-modal">
+      <div class="modal-dialog group-modal-dialog">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-users"></i> Create New Group</h3>
+          <button class="icon-btn btn-close-modal" id="btn-close-group-modal" title="Close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body group-modal-body">
+          <div class="group-avatar-picker-wrapper">
+            <div class="group-avatar-preview" id="group-avatar-preview-box">
+              <img id="group-avatar-img" src="https://api.dicebear.com/7.x/shapes/svg?seed=group1" alt="Group Icon">
+              <label for="group-avatar-file" class="avatar-edit-overlay" title="Upload Group Icon">
+                <i class="fa-solid fa-camera"></i>
+              </label>
+            </div>
+            <input type="file" id="group-avatar-file" accept="image/*" class="hidden">
+          </div>
+
+          <div class="form-group">
+            <label for="group-name-input">Group Subject / Name</label>
+            <input type="text" id="group-name-input" placeholder="e.g. Project Team, Family, Friends" autocomplete="off">
+          </div>
+
+          <div class="form-group">
+            <label>Select Group Members (<span id="selected-members-count">0</span> selected)</label>
+            <div id="group-members-list" class="group-members-list">
+              <!-- Dynamic checkable list of contacts -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="btn-cancel-create-group">Cancel</button>
+          <button class="btn btn-primary" id="btn-confirm-create-group">
+            <i class="fa-solid fa-check"></i> Create Group
+          </button>
         </div>
       </div>
     </div>

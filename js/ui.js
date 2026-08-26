@@ -503,6 +503,16 @@ const UIModule = {
       });
     }
 
+    const btnNewGroupMenu = document.getElementById('btn-open-group-from-menu');
+    if (btnNewGroupMenu) {
+      btnNewGroupMenu.addEventListener('click', () => {
+        if (settingsModal) settingsModal.classList.remove('active');
+        if (window.ContactsModule) {
+          window.ContactsModule.openCreateGroupModal();
+        }
+      });
+    }
+
     // Start First Chat button (Empty State)
     const btnStartFirst = document.getElementById('btn-start-first-chat');
     if (btnStartFirst) {
