@@ -2428,16 +2428,17 @@ const ChatModule = {
 
     const contacts = window.ContactsModule.contacts;
     
-    // Filter to only non-deleted contacts with active message history, currently open chat, or pinned state
+    // Filter active conversations: include contacts with message history, open chat, pinned state, or group chats
     const activeConversations = contacts.filter(c => {
       if (this.deletedChats[c.id]) return false;
       const msgs = this.messages[c.id] || [];
       const isActive = this.activeContact && this.activeContact.id === c.id;
       const isPinned = !!this.pinnedChats[c.id];
-      return msgs.length > 0 || isActive || isPinned;
+      const isGroup = !!c.isGroup;
+      return msgs.length > 0 || isActive || isPinned || isGroup;
     });
 
-    // Sort active conversations: Pinned chats first, then by last message timestamp
+    // Sort active conversations: Pinned chats first, then by last message timestamp (or creation timestamp)
     activeConversations.sort((a, b) => {
       const aPinned = !!this.pinnedChats[a.id];
       const bPinned = !!this.pinnedChats[b.id];
@@ -2446,8 +2447,21 @@ const ChatModule = {
 
       const msgsA = this.messages[a.id] || [];
       const msgsB = this.messages[b.id] || [];
-      const lastA = msgsA.length > 0 ? (msgsA[msgsA.length - 1].timestamp || 0) : 0;
-      const lastB = msgsB.length > 0 ? (msgsB[msgsB.length - 1].timestamp || 0) : 0;
+      
+      const getTime = (c, msgs) => {
+        if (msgs.length > 0) {
+          const t = msgs[msgs.length - 1].timestamp;
+          if (typeof t === 'number') return t;
+          if (t) {
+            const parsed = new Date(t).getTime();
+            if (!isNaN(parsed)) return parsed;
+          }
+        }
+        return c.createdAt || 0;
+      };
+
+      const lastA = getTime(a, msgsA);
+      const lastB = getTime(b, msgsB);
       return lastB - lastA;
     });
 
@@ -2535,6 +2549,7 @@ const ChatModule = {
     const finalMemberIds = Array.from(new Set([creatorId, ...selectedMemberIds]));
     let finalMemberNames = Array.from(new Set([creatorName, ...selectedMemberNames]));
 
+    const now = Date.now();
     const groupContact = {
       id: groupId,
       name: groupName,
@@ -2543,7 +2558,8 @@ const ChatModule = {
       isGroup: true,
       members: finalMemberIds,
       memberNames: finalMemberNames,
-      createdBy: creatorName
+      createdBy: creatorName,
+      createdAt: now
     };
 
     if (window.ContactsModule) {
@@ -2556,14 +2572,18 @@ const ChatModule = {
     }
 
     this.messages[groupId].push({
-      id: 'sys_' + Date.now(),
+      id: 'sys_' + now,
       senderId: 'system',
       senderName: 'System',
       text: `${creatorName} created group "${groupName}" (${finalMemberNames.length} members, Admin: ${creatorName})`,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: now,
       status: 'read',
       isSystem: true
     });
+
+    try {
+      MockDB.set('messages_' + groupId, this.messages[groupId]);
+    } catch(e) {}
 
     if (window.AppConfig && window.AppConfig.isLiveFirebase && window.AppConfig.db) {
       window.AppConfig.db.collection('chats').doc(groupId).set({
@@ -2575,6 +2595,10 @@ const ChatModule = {
     if (window.showToast) {
       window.showToast(`Group "${groupName}" created with you as Admin!`, 'success');
     }
+
+    // Switch view to Chats tab
+    const tabChats = document.querySelector('.tab-btn[data-tab="chats"]');
+    if (tabChats) tabChats.click();
 
     this.renderChatsList();
     this.openConversation(groupContact);
