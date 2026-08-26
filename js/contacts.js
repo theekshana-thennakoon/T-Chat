@@ -12,25 +12,6 @@ const ContactsModule = {
   },
 
   bindEvents() {
-    // Import Web Contacts button (Mobile Chrome / Safari API)
-    const btnImport = document.getElementById('btn-import-web-contacts');
-    if (btnImport) {
-      btnImport.addEventListener('click', () => this.requestWebContacts());
-    }
-
-    // Import .VCF file listener
-    const fileVcf = document.getElementById('input-vcf-file');
-    if (fileVcf) {
-      fileVcf.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = (evt) => this.parseAndImportVCF(evt.target.result);
-          reader.readAsText(file);
-        }
-      });
-    }
-
     // Add manual contact button
     const btnAdd = document.getElementById('btn-add-manual-contact');
     if (btnAdd) {
