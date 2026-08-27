@@ -227,10 +227,48 @@ const ContactsModule = {
       this.contacts = saved;
     } else {
       this.contacts = [];
-      this.saveContacts();
     }
 
+    this.syncGroupChats();
+    this.saveContacts();
     this.renderContactsList();
+  },
+
+  syncGroupChats() {
+    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || (window.AppConfig && window.AppConfig.currentUser) || MockDB.get('current_session');
+    if (!currentUser) return;
+
+    const myUid = currentUser.uid || currentUser.id || 'user_me';
+    const myPhone = currentUser.phone || '';
+    const myPhoneClean = myPhone ? myPhone.replace(/\D/g, '') : '';
+    const myName = currentUser.name || '';
+
+    const matchesMe = (val) => {
+      if (!val) return false;
+      if (val === myUid || val === myPhone || val === myName) return true;
+      const clean = String(val).replace(/\D/g, '');
+      if (myPhoneClean && clean && clean === myPhoneClean) return true;
+      return false;
+    };
+
+    const allGroups = MockDB.get('all_groups', []);
+    if (Array.isArray(allGroups)) {
+      allGroups.forEach(g => {
+        if (!g || !g.id) return;
+        const members = g.members || [];
+        const parts = g.participants || [];
+        const isMember = members.some(m => matchesMe(m)) || parts.some(p => matchesMe(p)) || matchesMe(g.createdBy);
+
+        if (isMember) {
+          const exists = this.contacts.find(c => c.id === g.id);
+          if (!exists) {
+            this.contacts.unshift(g);
+          } else {
+            Object.assign(exists, g);
+          }
+        }
+      });
+    }
   },
 
   saveContacts() {

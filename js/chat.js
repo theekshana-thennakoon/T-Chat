@@ -114,11 +114,13 @@ const ChatModule = {
 
     const btnAttachCamera = document.getElementById('btn-attach-camera');
     const inputAttachCamera = document.getElementById('attach-camera-input');
-    if (btnAttachCamera && inputAttachCamera) {
+    if (btnAttachCamera) {
       btnAttachCamera.onclick = () => {
         hideAttachDropdown();
-        inputAttachCamera.click();
+        this.openCameraWebcamModal();
       };
+    }
+    if (inputAttachCamera) {
       inputAttachCamera.onchange = (e) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
@@ -129,10 +131,26 @@ const ChatModule = {
     }
 
     const btnAttachPhotos = document.getElementById('btn-attach-photos');
+    const inputDesktopPhotos = document.getElementById('attach-photos-desktop-input');
     if (btnAttachPhotos) {
       btnAttachPhotos.onclick = () => {
         hideAttachDropdown();
-        this.openMediaGalleryModal();
+        if (window.innerWidth <= 768) {
+          this.openMediaGalleryModal();
+        } else if (inputDesktopPhotos) {
+          inputDesktopPhotos.click();
+        } else {
+          this.openMediaGalleryModal();
+        }
+      };
+    }
+    if (inputDesktopPhotos) {
+      inputDesktopPhotos.onchange = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+          this.handleMultipleImageFiles(files);
+          inputDesktopPhotos.value = '';
+        }
       };
     }
 
@@ -149,30 +167,6 @@ const ChatModule = {
       btnAttachContact.onclick = () => {
         hideAttachDropdown();
         this.openContactModal();
-      };
-    }
-
-    const btnAttachOrder = document.getElementById('btn-attach-order');
-    if (btnAttachOrder) {
-      btnAttachOrder.onclick = () => {
-        hideAttachDropdown();
-        this.openOrderModal();
-      };
-    }
-
-    const btnAttachCatalog = document.getElementById('btn-attach-catalog');
-    if (btnAttachCatalog) {
-      btnAttachCatalog.onclick = () => {
-        hideAttachDropdown();
-        this.openCatalogModal();
-      };
-    }
-
-    const btnAttachQuickreply = document.getElementById('btn-attach-quickreply');
-    if (btnAttachQuickreply) {
-      btnAttachQuickreply.onclick = () => {
-        hideAttachDropdown();
-        this.openQuickReplyModal();
       };
     }
 
@@ -867,6 +861,7 @@ const ChatModule = {
 
   getChatRoomId(contact) {
     if (!contact) return '';
+    if (contact.isGroup) return contact.id;
     const myUser = window.AppConfig.currentUser || {};
     
     // Normalize phone numbers or fallback to UIDs
@@ -1010,37 +1005,62 @@ const ChatModule = {
     if (!window.AppConfig.isLiveFirebase || !window.AppConfig.db || !window.AppConfig.currentUser) return;
 
     const myUid = window.AppConfig.currentUser.uid;
-    const myPhoneClean = window.AppConfig.currentUser.phone ? window.AppConfig.currentUser.phone.replace(/\D/g, '') : '';
+    const myPhone = window.AppConfig.currentUser.phone || '';
+    const myPhoneClean = myPhone ? myPhone.replace(/\D/g, '') : '';
 
-    const searchKeys = [myUid, myPhoneClean].filter(Boolean);
+    const searchKeys = Array.from(new Set([myUid, myPhoneClean, myPhone].filter(Boolean)));
     if (searchKeys.length === 0) return;
 
-    // Listen to all chat rooms where current user is a participant
+    // Listen to all chat rooms / groups where current user is a participant
     window.AppConfig.db.collection('chats')
       .where('participants', 'array-contains-any', searchKeys)
       .onSnapshot(snapshot => {
         snapshot.forEach(doc => {
           const roomData = doc.data();
           if (roomData && window.ContactsModule) {
-            const parts = roomData.participants || [];
-            const otherKey = parts.find(p => p !== myUid && p !== myPhoneClean);
-
-            if (otherKey) {
-              let existingContact = window.ContactsModule.contacts.find(c => {
-                const cClean = c.phone ? c.phone.replace(/\D/g, '') : c.id;
-                return cClean === otherKey || c.phone === otherKey || c.id === otherKey || c.id === roomData.senderUid;
-              });
-
-              if (!existingContact) {
-                // Auto-create contact entry for receiver so conversation displays in sidebar
-                const displayName = roomData.senderName || ('User ' + otherKey);
-                const phoneNum = (typeof otherKey === 'string' && !otherKey.startsWith('+') && !otherKey.startsWith('user_')) ? ('+' + otherKey) : otherKey;
-                window.ContactsModule.addContact(displayName, phoneNum);
-                existingContact = window.ContactsModule.contacts.find(c => c.phone.replace(/\D/g, '') === otherKey);
+            if (roomData.isGroup) {
+              let existingGroup = window.ContactsModule.contacts.find(c => c.id === roomData.id || c.id === doc.id);
+              if (!existingGroup) {
+                const groupObj = {
+                  id: doc.id,
+                  name: roomData.name || 'Group Chat',
+                  avatar: roomData.avatar || ('https://api.dicebear.com/7.x/shapes/svg?seed=' + encodeURIComponent(roomData.name || doc.id)),
+                  about: roomData.about || 'Group Chat',
+                  isGroup: true,
+                  members: roomData.members || [],
+                  memberNames: roomData.memberNames || [],
+                  participants: roomData.participants || [],
+                  createdBy: roomData.createdBy || '',
+                  createdAt: roomData.createdAt || Date.now()
+                };
+                window.ContactsModule.contacts.unshift(groupObj);
+                existingGroup = groupObj;
+                window.ContactsModule.saveContacts();
               }
+              if (existingGroup) {
+                this.loadMessagesForContact(existingGroup);
+              }
+            } else {
+              const parts = roomData.participants || [];
+              const otherKey = parts.find(p => p !== myUid && p !== myPhoneClean && p !== myPhone);
 
-              if (existingContact) {
-                this.loadMessagesForContact(existingContact);
+              if (otherKey) {
+                let existingContact = window.ContactsModule.contacts.find(c => {
+                  const cClean = c.phone ? c.phone.replace(/\D/g, '') : c.id;
+                  return cClean === otherKey || c.phone === otherKey || c.id === otherKey || c.id === roomData.senderUid;
+                });
+
+                if (!existingContact) {
+                  // Auto-create contact entry for receiver so conversation displays in sidebar
+                  const displayName = roomData.senderName || ('User ' + otherKey);
+                  const phoneNum = (typeof otherKey === 'string' && !otherKey.startsWith('+') && !otherKey.startsWith('user_')) ? ('+' + otherKey) : otherKey;
+                  window.ContactsModule.addContact(displayName, phoneNum);
+                  existingContact = window.ContactsModule.contacts.find(c => c.phone && c.phone.replace(/\D/g, '') === otherKey);
+                }
+
+                if (existingContact) {
+                  this.loadMessagesForContact(existingContact);
+                }
               }
             }
           }
@@ -1418,8 +1438,81 @@ const ChatModule = {
   },
 
   /* ==========================================================================
-     NEW ATTACHMENT MODALS & HANDLERS (Location, Contact, Order, Catalog, etc.)
+     NEW ATTACHMENT MODALS & HANDLERS (Camera, Location, Contact, Poll, Event)
      ========================================================================== */
+  async openCameraWebcamModal() {
+    const modal = document.getElementById('webcam-capture-modal');
+    const video = document.getElementById('webcam-video-stream');
+    const cameraInput = document.getElementById('attach-camera-input');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (cameraInput) cameraInput.click();
+      return;
+    }
+
+    try {
+      if (this.webcamStream) {
+        this.webcamStream.getTracks().forEach(t => t.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      this.webcamStream = stream;
+      if (video) {
+        video.srcObject = stream;
+        video.play();
+      }
+      if (modal) modal.classList.add('active');
+    } catch (err) {
+      console.warn('Webcam getUserMedia fallback to file input:', err);
+      if (cameraInput) {
+        cameraInput.click();
+      } else if (window.showToast) {
+        window.showToast('Unable to access camera device', 'warning');
+      }
+    }
+  },
+
+  snapWebcamPhoto() {
+    const video = document.getElementById('webcam-video-stream');
+    const canvas = document.getElementById('webcam-snap-canvas');
+    if (!video || !canvas) return;
+
+    const w = video.videoWidth || 640;
+    const h = video.videoHeight || 480;
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, w, h);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+    this.closeWebcamModal();
+
+    this.pendingSendImages = [{
+      dataUrl: dataUrl,
+      type: 'image',
+      isVideo: false,
+      caption: ''
+    }];
+    this.activeImageIndex = 0;
+    this.openImageSendModal();
+  },
+
+  closeWebcamModal() {
+    if (this.webcamStream) {
+      this.webcamStream.getTracks().forEach(t => t.stop());
+      this.webcamStream = null;
+    }
+    const video = document.getElementById('webcam-video-stream');
+    if (video) video.srcObject = null;
+
+    const modal = document.getElementById('webcam-capture-modal');
+    if (modal) modal.classList.remove('active');
+  },
+
   openLocationModal() {
     const modal = document.getElementById('location-modal');
     if (!modal) return;
@@ -3011,6 +3104,10 @@ const ChatModule = {
     this.isLoadingChats = true;
     this.renderSkeletonChatsList();
 
+    if (window.ContactsModule && window.ContactsModule.syncGroupChats) {
+      window.ContactsModule.syncGroupChats();
+    }
+
     if (window.AppConfig.isLiveFirebase && window.AppConfig.db && window.AppConfig.currentUser) {
       this.listenToAllUserChats();
       if (window.ContactsModule && window.ContactsModule.contacts) {
@@ -3018,6 +3115,13 @@ const ChatModule = {
           this.loadMessagesForContact(c);
         });
       }
+    } else if (window.ContactsModule && window.ContactsModule.contacts) {
+      window.ContactsModule.contacts.forEach(c => {
+        const saved = MockDB.get('messages_' + c.id, null);
+        if (saved && Array.isArray(saved)) {
+          this.messages[c.id] = saved;
+        }
+      });
     }
 
     setTimeout(() => {
@@ -3041,14 +3145,39 @@ const ChatModule = {
 
   createGroupChat(groupName, avatarUrl, selectedMemberIds, selectedMemberNames = []) {
     const groupId = 'group_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
-    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || MockDB.get('current_session') || { name: 'You', uid: 'user_me' };
+    const currentUser = (window.AuthModule && window.AuthModule.currentUser) || (window.AppConfig && window.AppConfig.currentUser) || MockDB.get('current_session') || { name: 'You', uid: 'user_me' };
     const creatorName = currentUser.name || 'You';
     const creatorId = currentUser.uid || currentUser.id || 'user_me';
+    const creatorPhone = currentUser.phone || '';
+    const creatorPhoneClean = creatorPhone ? creatorPhone.replace(/\D/g, '') : '';
 
-    // Deduplicate IDs and names ensuring creator is always present first
-    const finalMemberIds = Array.from(new Set([creatorId, ...selectedMemberIds]));
-    let finalMemberNames = Array.from(new Set([creatorName, ...selectedMemberNames]));
+    // Deduplicate member IDs and names ensuring creator is always present
+    const finalMemberIds = Array.from(new Set([creatorId, creatorPhoneClean, creatorPhone, ...selectedMemberIds].filter(Boolean)));
+    let finalMemberNames = Array.from(new Set([creatorName, ...selectedMemberNames].filter(Boolean)));
 
+    // Collect all expanded participant keys (contact IDs, UIDs, phones, cleaned phones)
+    const participantsSet = new Set(finalMemberIds);
+    selectedMemberIds.forEach(id => {
+      if (!id) return;
+      participantsSet.add(id);
+      const clean = String(id).replace(/\D/g, '');
+      if (clean) participantsSet.add(clean);
+
+      if (window.ContactsModule && window.ContactsModule.contacts) {
+        const c = window.ContactsModule.contacts.find(x => x.id === id || x.phone === id || (x.phone && x.phone.replace(/\D/g, '') === clean));
+        if (c) {
+          if (c.id) participantsSet.add(c.id);
+          if (c.uid) participantsSet.add(c.uid);
+          if (c.phone) {
+            participantsSet.add(c.phone);
+            const pClean = c.phone.replace(/\D/g, '');
+            if (pClean) participantsSet.add(pClean);
+          }
+        }
+      }
+    });
+
+    const participants = Array.from(participantsSet);
     const now = Date.now();
     const groupContact = {
       id: groupId,
@@ -3058,14 +3187,29 @@ const ChatModule = {
       isGroup: true,
       members: finalMemberIds,
       memberNames: finalMemberNames,
+      participants: participants,
       createdBy: creatorName,
       createdAt: now
     };
 
+    // 1. Add group to creator's contacts list
     if (window.ContactsModule) {
-      window.ContactsModule.contacts.unshift(groupContact);
+      const exists = window.ContactsModule.contacts.find(c => c.id === groupId);
+      if (!exists) {
+        window.ContactsModule.contacts.unshift(groupContact);
+      }
       window.ContactsModule.saveContacts();
     }
+
+    // 2. Save group to global all_groups array in MockDB so ALL group members get it
+    const allGroups = MockDB.get('all_groups', []);
+    const gIdx = allGroups.findIndex(g => g.id === groupId);
+    if (gIdx !== -1) {
+      allGroups[gIdx] = groupContact;
+    } else {
+      allGroups.unshift(groupContact);
+    }
+    MockDB.set('all_groups', allGroups);
 
     if (!this.messages[groupId]) {
       this.messages[groupId] = [];
@@ -3075,7 +3219,7 @@ const ChatModule = {
       id: 'sys_' + now,
       senderId: 'system',
       senderName: 'System',
-      text: `${creatorName} created group "${groupName}" (${finalMemberNames.length} members, Admin: ${creatorName})`,
+      text: `${creatorName} created group "${groupName}" (${finalMemberNames.length} members: ${finalMemberNames.join(', ')})`,
       timestamp: now,
       status: 'read',
       isSystem: true
@@ -3085,15 +3229,18 @@ const ChatModule = {
       MockDB.set('messages_' + groupId, this.messages[groupId]);
     } catch(e) {}
 
+    // 3. Save to Firebase Live DB under chats/groupId with full participants list
     if (window.AppConfig && window.AppConfig.isLiveFirebase && window.AppConfig.db) {
       window.AppConfig.db.collection('chats').doc(groupId).set({
         ...groupContact,
         updatedAt: new Date().toISOString()
       }, { merge: true });
+
+      window.AppConfig.db.collection('chats').doc(groupId).collection('messages').doc('sys_' + now).set(this.messages[groupId][0]);
     }
 
     if (window.showToast) {
-      window.showToast(`Group "${groupName}" created with you as Admin!`, 'success');
+      window.showToast(`Group "${groupName}" created with ${finalMemberNames.length} members!`, 'success');
     }
 
     // Switch view to Chats tab

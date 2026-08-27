@@ -462,6 +462,7 @@
                     </div>
                     <span>Photos</span>
                   </button>
+                  <input type="file" id="attach-photos-desktop-input" accept="image/*,video/*" multiple class="hidden">
 
                   <label class="attach-grid-item" for="attach-file-input">
                     <div class="attach-icon-circle bg-document">
@@ -478,32 +479,11 @@
                     <span>Location</span>
                   </button>
 
-                  <button type="button" class="attach-grid-item" id="btn-attach-contact">
+                  <button type="button" class="attach-grid-item mobile-only" id="btn-attach-contact">
                     <div class="attach-icon-circle bg-contact">
                       <i class="fa-solid fa-user"></i>
                     </div>
                     <span>Contact</span>
-                  </button>
-
-                  <button type="button" class="attach-grid-item" id="btn-attach-order">
-                    <div class="attach-icon-circle bg-order">
-                      <i class="fa-solid fa-receipt"></i>
-                    </div>
-                    <span>Order</span>
-                  </button>
-
-                  <button type="button" class="attach-grid-item" id="btn-attach-catalog">
-                    <div class="attach-icon-circle bg-store">
-                      <i class="fa-solid fa-store"></i>
-                    </div>
-                    <span>Catalog</span>
-                  </button>
-
-                  <button type="button" class="attach-grid-item" id="btn-attach-quickreply">
-                    <div class="attach-icon-circle bg-quickreply">
-                      <i class="fa-solid fa-bolt"></i>
-                    </div>
-                    <span>Quick replies</span>
                   </button>
 
                   <button type="button" class="attach-grid-item" id="btn-attach-poll">
@@ -1115,86 +1095,24 @@
       </div>
     </div>
 
-    <!-- ORDER ATTACHMENT MODAL -->
-    <div id="order-modal" class="modal center-modal">
-      <div class="modal-dialog" style="max-width: 440px;">
+    <!-- WEBCAM LIVE CAMERA CAPTURE MODAL -->
+    <div id="webcam-capture-modal" class="modal center-modal">
+      <div class="modal-dialog webcam-modal-dialog" style="max-width: 480px; text-align: center;">
         <div class="modal-header">
-          <h3><i class="fa-solid fa-receipt" style="color:#7c4dff"></i> Create Order Attachment</h3>
-          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+          <h3><i class="fa-solid fa-camera"></i> Capture Photo</h3>
+          <button class="icon-btn btn-close-modal" id="btn-close-webcam-modal" onclick="ChatModule.closeWebcamModal()"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <div class="modal-body" style="padding: 16px;">
-          <div class="form-group">
-            <label>Order ID</label>
-            <input type="text" id="order-id-input" value="#ORD-8492">
-          </div>
-          <div class="form-group">
-            <label>Item Name / Service</label>
-            <input type="text" id="order-item-input" placeholder="e.g. Wireless Noise-Canceling Headphones">
-          </div>
-          <div style="display: flex; gap: 10px;">
-            <div class="form-group" style="flex: 1;">
-              <label>Quantity</label>
-              <input type="number" id="order-qty-input" value="1" min="1">
-            </div>
-            <div class="form-group" style="flex: 2;">
-              <label>Total Price ($)</label>
-              <input type="text" id="order-price-input" placeholder="e.g. 79.99">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Payment Status</label>
-            <select id="order-status-select" class="country-select" style="width: 100%;">
-              <option value="Paid">✅ Paid</option>
-              <option value="Pending">⏳ Pending Payment</option>
-              <option value="COD">💵 Cash on Delivery</option>
-            </select>
+          <div class="webcam-viewport" style="position: relative; width: 100%; height: 320px; background: #000; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            <video id="webcam-video-stream" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+            <canvas id="webcam-snap-canvas" style="display: none;"></canvas>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary full-width" onclick="ChatModule.confirmSendOrder()">
-            <i class="fa-solid fa-paper-plane"></i> Send Order
+        <div class="modal-footer" style="justify-content: center; gap: 16px;">
+          <button type="button" class="btn btn-secondary" onclick="ChatModule.closeWebcamModal()">Cancel</button>
+          <button type="button" class="btn btn-primary btn-circle-shutter" id="btn-snap-webcam-photo" onclick="ChatModule.snapWebcamPhoto()" title="Take Photo" style="width: 56px; height: 56px; border-radius: 50%; padding: 0; font-size: 1.4rem; background: var(--accent-blue);">
+            <i class="fa-solid fa-camera"></i>
           </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- CATALOG ATTACHMENT MODAL -->
-    <div id="catalog-modal" class="modal center-modal">
-      <div class="modal-dialog" style="max-width: 440px;">
-        <div class="modal-header">
-          <h3><i class="fa-solid fa-store" style="color:#ff5722"></i> Send Product Catalog Item</h3>
-          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body" style="padding: 16px;">
-          <label style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:8px; display:block;">Select Catalog Product</label>
-          <div id="catalog-items-grid" class="catalog-items-grid"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-primary full-width" onclick="ChatModule.confirmSendCatalog()">
-            <i class="fa-solid fa-paper-plane"></i> Send Product Card
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- QUICK REPLIES MODAL -->
-    <div id="quickreply-modal" class="modal center-modal">
-      <div class="modal-dialog" style="max-width: 440px;">
-        <div class="modal-header">
-          <h3><i class="fa-solid fa-bolt" style="color:#ffc107"></i> Quick Replies</h3>
-          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
-        </div>
-        <div class="modal-body" style="padding: 16px;">
-          <div class="quick-reply-chips-grid">
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('On my way! 🚗')">On my way! 🚗</button>
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Can you send me the details? 📄')">Can you send me the details? 📄</button>
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Thanks! Received. 👍')">Thanks! Received. 👍</button>
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Call me when you are free 📞')">Call me when free 📞</button>
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Let\'s schedule a meeting 📅')">Let's schedule a meeting 📅</button>
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Please check your email 📧')">Please check email 📧</button>
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('I\'ll get back to you shortly ⏱️')">I'll get back to you ⏱️</button>
-            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Great news! 🎉')">Great news! 🎉</button>
-          </div>
         </div>
       </div>
     </div>
