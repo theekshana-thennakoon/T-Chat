@@ -446,18 +446,79 @@
                   <i class="fa-solid fa-paperclip"></i>
                 </button>
 
-                <!-- Attach Menu Dropdown -->
-                <div id="attach-dropdown" class="attach-dropdown hidden">
-                  <button type="button" class="attach-item" id="btn-open-gallery-modal" onclick="event.stopPropagation(); if(window.ChatModule) window.ChatModule.openMediaGalleryModal();">
-                    <i class="fa-solid fa-image icon-img"></i>
-                    <span>Photos & Videos</span>
+                <!-- Attach Menu Dropdown Grid -->
+                <div id="attach-dropdown" class="attach-dropdown attach-grid-menu hidden">
+                  <button type="button" class="attach-grid-item" id="btn-attach-camera">
+                    <div class="attach-icon-circle bg-camera">
+                      <i class="fa-solid fa-camera"></i>
+                    </div>
+                    <span>Camera</span>
+                  </button>
+                  <input type="file" id="attach-camera-input" accept="image/*" capture="environment" class="hidden">
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-photos">
+                    <div class="attach-icon-circle bg-photos">
+                      <i class="fa-solid fa-image"></i>
+                    </div>
+                    <span>Photos</span>
                   </button>
 
-                  <label class="attach-item" for="attach-file-input">
-                    <i class="fa-solid fa-file-lines icon-doc"></i>
+                  <label class="attach-grid-item" for="attach-file-input">
+                    <div class="attach-icon-circle bg-document">
+                      <i class="fa-solid fa-file-lines"></i>
+                    </div>
                     <span>Document</span>
                   </label>
                   <input type="file" id="attach-file-input" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.ppt,.pptx,application/pdf,text/plain" multiple class="hidden">
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-location">
+                    <div class="attach-icon-circle bg-location">
+                      <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <span>Location</span>
+                  </button>
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-contact">
+                    <div class="attach-icon-circle bg-contact">
+                      <i class="fa-solid fa-user"></i>
+                    </div>
+                    <span>Contact</span>
+                  </button>
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-order">
+                    <div class="attach-icon-circle bg-order">
+                      <i class="fa-solid fa-receipt"></i>
+                    </div>
+                    <span>Order</span>
+                  </button>
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-catalog">
+                    <div class="attach-icon-circle bg-store">
+                      <i class="fa-solid fa-store"></i>
+                    </div>
+                    <span>Catalog</span>
+                  </button>
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-quickreply">
+                    <div class="attach-icon-circle bg-quickreply">
+                      <i class="fa-solid fa-bolt"></i>
+                    </div>
+                    <span>Quick replies</span>
+                  </button>
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-poll">
+                    <div class="attach-icon-circle bg-poll">
+                      <i class="fa-solid fa-square-poll-vertical"></i>
+                    </div>
+                    <span>Poll</span>
+                  </button>
+
+                  <button type="button" class="attach-grid-item" id="btn-attach-event">
+                    <div class="attach-icon-circle bg-event">
+                      <i class="fa-solid fa-calendar-days"></i>
+                    </div>
+                    <span>Event</span>
+                  </button>
                 </div>
               </div>
 
@@ -991,6 +1052,225 @@
           <span class="gallery-info-text" id="gallery-footer-info">Select photos or videos</span>
           <button class="btn btn-primary" id="btn-confirm-gallery-select" disabled onclick="ChatModule.confirmGallerySelection()">
             <i class="fa-solid fa-check"></i> Next
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOCATION ATTACHMENT MODAL -->
+    <div id="location-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-location-dot" style="color:#00bfa5"></i> Share Location</h3>
+          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="location-preview-box" id="location-preview-box">
+            <div class="location-map-fake">
+              <i class="fa-solid fa-location-dot location-pin-pulse"></i>
+              <span id="location-status-badge">Detecting GPS Location...</span>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 14px;">
+            <label>Location Title / Venue</label>
+            <input type="text" id="loc-title-input" placeholder="e.g. Current Location, Starbucks Coffee">
+          </div>
+          <div class="form-group">
+            <label>Address / Notes</label>
+            <input type="text" id="loc-address-input" placeholder="e.g. 742 Evergreen Terrace, Sector 4">
+          </div>
+          <div class="form-group">
+            <label>Nearby Presets</label>
+            <div class="location-presets" id="location-presets-list">
+              <button type="button" class="btn-preset-chip active" onclick="ChatModule.selectLocationPreset('Current GPS Location', 'Live position updated via device GPS')"><i class="fa-solid fa-crosshairs"></i> Current GPS</button>
+              <button type="button" class="btn-preset-chip" onclick="ChatModule.selectLocationPreset('Central Park Office', '742 Park Avenue, New York, NY')"><i class="fa-solid fa-building"></i> Central Office</button>
+              <button type="button" class="btn-preset-chip" onclick="ChatModule.selectLocationPreset('City Tech Hub', '101 Innovation Blvd, Suite 300')"><i class="fa-solid fa-laptop-code"></i> Tech Hub</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary full-width" onclick="ChatModule.confirmSendLocation()">
+            <i class="fa-solid fa-paper-plane"></i> Share Location
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACT ATTACHMENT MODAL -->
+    <div id="contact-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-user" style="color:#0288d1"></i> Send Contact</h3>
+          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <input type="text" id="contact-search-input" placeholder="Search contacts..." oninput="ChatModule.filterContactShareList(this.value)" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-light); background: var(--bg-input); color: var(--text-primary); margin-bottom: 12px;">
+          <div id="share-contacts-list" class="share-contacts-list" style="max-height: 280px; overflow-y: auto;"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary full-width" id="btn-send-selected-contact" onclick="ChatModule.confirmSendContact()">
+            <i class="fa-solid fa-paper-plane"></i> Send Selected Contact
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORDER ATTACHMENT MODAL -->
+    <div id="order-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-receipt" style="color:#7c4dff"></i> Create Order Attachment</h3>
+          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="form-group">
+            <label>Order ID</label>
+            <input type="text" id="order-id-input" value="#ORD-8492">
+          </div>
+          <div class="form-group">
+            <label>Item Name / Service</label>
+            <input type="text" id="order-item-input" placeholder="e.g. Wireless Noise-Canceling Headphones">
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <div class="form-group" style="flex: 1;">
+              <label>Quantity</label>
+              <input type="number" id="order-qty-input" value="1" min="1">
+            </div>
+            <div class="form-group" style="flex: 2;">
+              <label>Total Price ($)</label>
+              <input type="text" id="order-price-input" placeholder="e.g. 79.99">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Payment Status</label>
+            <select id="order-status-select" class="country-select" style="width: 100%;">
+              <option value="Paid">✅ Paid</option>
+              <option value="Pending">⏳ Pending Payment</option>
+              <option value="COD">💵 Cash on Delivery</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary full-width" onclick="ChatModule.confirmSendOrder()">
+            <i class="fa-solid fa-paper-plane"></i> Send Order
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATALOG ATTACHMENT MODAL -->
+    <div id="catalog-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-store" style="color:#ff5722"></i> Send Product Catalog Item</h3>
+          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <label style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:8px; display:block;">Select Catalog Product</label>
+          <div id="catalog-items-grid" class="catalog-items-grid"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary full-width" onclick="ChatModule.confirmSendCatalog()">
+            <i class="fa-solid fa-paper-plane"></i> Send Product Card
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUICK REPLIES MODAL -->
+    <div id="quickreply-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-bolt" style="color:#ffc107"></i> Quick Replies</h3>
+          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="quick-reply-chips-grid">
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('On my way! 🚗')">On my way! 🚗</button>
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Can you send me the details? 📄')">Can you send me the details? 📄</button>
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Thanks! Received. 👍')">Thanks! Received. 👍</button>
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Call me when you are free 📞')">Call me when free 📞</button>
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Let\'s schedule a meeting 📅')">Let's schedule a meeting 📅</button>
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Please check your email 📧')">Please check email 📧</button>
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('I\'ll get back to you shortly ⏱️')">I'll get back to you ⏱️</button>
+            <button type="button" class="qr-chip" onclick="ChatModule.selectQuickReply('Great news! 🎉')">Great news! 🎉</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- POLL ATTACHMENT MODAL -->
+    <div id="poll-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-square-poll-vertical" style="color:#ff9800"></i> Create Poll</h3>
+          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="form-group">
+            <label>Question</label>
+            <input type="text" id="poll-question-input" placeholder="Ask a question...">
+          </div>
+          <div class="form-group">
+            <label>Options</label>
+            <div id="poll-options-container" class="poll-options-container">
+              <input type="text" class="poll-option-input" placeholder="Option 1" style="margin-bottom:8px; width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-light); background:var(--bg-input); color:var(--text-primary);">
+              <input type="text" class="poll-option-input" placeholder="Option 2" style="margin-bottom:8px; width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-light); background:var(--bg-input); color:var(--text-primary);">
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="ChatModule.addPollOptionField()" style="margin-top:4px;">
+              <i class="fa-solid fa-plus"></i> Add Option
+            </button>
+          </div>
+          <div class="form-group" style="display:flex; align-items:center; justify-content:space-between; margin-top:12px;">
+            <label style="margin:0;">Allow multiple answers</label>
+            <label class="switch">
+              <input type="checkbox" id="poll-multiple-toggle">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary full-width" onclick="ChatModule.confirmSendPoll()">
+            <i class="fa-solid fa-paper-plane"></i> Create Poll
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENT ATTACHMENT MODAL -->
+    <div id="event-modal" class="modal center-modal">
+      <div class="modal-dialog" style="max-width: 440px;">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-calendar-days" style="color:#ef5350"></i> Create Event</h3>
+          <button class="icon-btn btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 16px;">
+          <div class="form-group">
+            <label>Event Title</label>
+            <input type="text" id="event-title-input" placeholder="e.g. Team Brainstorming Session">
+          </div>
+          <div style="display:flex; gap:10px;">
+            <div class="form-group" style="flex:1;">
+              <label>Date</label>
+              <input type="date" id="event-date-input">
+            </div>
+            <div class="form-group" style="flex:1;">
+              <label>Time</label>
+              <input type="time" id="event-time-input">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Location / Meeting Link</label>
+            <input type="text" id="event-loc-input" placeholder="e.g. Conference Room B / Zoom">
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <input type="text" id="event-desc-input" placeholder="Brief description of the event...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary full-width" onclick="ChatModule.confirmSendEvent()">
+            <i class="fa-solid fa-paper-plane"></i> Create Event
           </button>
         </div>
       </div>

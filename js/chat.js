@@ -106,38 +106,90 @@ const ChatModule = {
       });
     }
 
-    // Attachment input listeners & Paste listener for image customization modal
-    const btnOpenGallery = document.getElementById('btn-open-gallery-modal');
-    if (btnOpenGallery) {
-      btnOpenGallery.onclick = () => {
-        const drop = document.getElementById('attach-dropdown');
-        if (drop) drop.classList.add('hidden');
+    // Attachment menu options bindings
+    const hideAttachDropdown = () => {
+      const drop = document.getElementById('attach-dropdown');
+      if (drop) drop.classList.add('hidden');
+    };
+
+    const btnAttachCamera = document.getElementById('btn-attach-camera');
+    const inputAttachCamera = document.getElementById('attach-camera-input');
+    if (btnAttachCamera && inputAttachCamera) {
+      btnAttachCamera.onclick = () => {
+        hideAttachDropdown();
+        inputAttachCamera.click();
+      };
+      inputAttachCamera.onchange = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+          this.handleMultipleImageFiles(files);
+          inputAttachCamera.value = '';
+        }
+      };
+    }
+
+    const btnAttachPhotos = document.getElementById('btn-attach-photos');
+    if (btnAttachPhotos) {
+      btnAttachPhotos.onclick = () => {
+        hideAttachDropdown();
         this.openMediaGalleryModal();
       };
     }
 
-    const deviceFileGallery = document.getElementById('gallery-browse-device-input');
-    if (deviceFileGallery) {
-      deviceFileGallery.onchange = (e) => {
-        const files = e.target.files;
-        if (files && files.length > 0) {
-          this.handleDeviceGalleryFiles(files);
-          deviceFileGallery.value = '';
-        }
+    const btnAttachLocation = document.getElementById('btn-attach-location');
+    if (btnAttachLocation) {
+      btnAttachLocation.onclick = () => {
+        hideAttachDropdown();
+        this.openLocationModal();
       };
     }
 
-    const fileImg = document.getElementById('attach-image-input');
-    if (fileImg) {
-      fileImg.addEventListener('change', (e) => {
-        const files = Array.from(e.target.files || []);
-        if (files.length > 0) {
-          this.handleMultipleImageFiles(files);
-          fileImg.value = '';
-          const drop = document.getElementById('attach-dropdown');
-          if (drop) drop.classList.add('hidden');
-        }
-      });
+    const btnAttachContact = document.getElementById('btn-attach-contact');
+    if (btnAttachContact) {
+      btnAttachContact.onclick = () => {
+        hideAttachDropdown();
+        this.openContactModal();
+      };
+    }
+
+    const btnAttachOrder = document.getElementById('btn-attach-order');
+    if (btnAttachOrder) {
+      btnAttachOrder.onclick = () => {
+        hideAttachDropdown();
+        this.openOrderModal();
+      };
+    }
+
+    const btnAttachCatalog = document.getElementById('btn-attach-catalog');
+    if (btnAttachCatalog) {
+      btnAttachCatalog.onclick = () => {
+        hideAttachDropdown();
+        this.openCatalogModal();
+      };
+    }
+
+    const btnAttachQuickreply = document.getElementById('btn-attach-quickreply');
+    if (btnAttachQuickreply) {
+      btnAttachQuickreply.onclick = () => {
+        hideAttachDropdown();
+        this.openQuickReplyModal();
+      };
+    }
+
+    const btnAttachPoll = document.getElementById('btn-attach-poll');
+    if (btnAttachPoll) {
+      btnAttachPoll.onclick = () => {
+        hideAttachDropdown();
+        this.openPollModal();
+      };
+    }
+
+    const btnAttachEvent = document.getElementById('btn-attach-event');
+    if (btnAttachEvent) {
+      btnAttachEvent.onclick = () => {
+        hideAttachDropdown();
+        this.openEventModal();
+      };
     }
 
     if (txtInput) {
@@ -1363,7 +1415,333 @@ const ChatModule = {
         isPdf: isPdf
       });
     };
-    reader.readAsDataURL(file);
+  },
+
+  /* ==========================================================================
+     NEW ATTACHMENT MODALS & HANDLERS (Location, Contact, Order, Catalog, etc.)
+     ========================================================================== */
+  openLocationModal() {
+    const modal = document.getElementById('location-modal');
+    if (!modal) return;
+    document.getElementById('loc-title-input').value = 'Current Location';
+    document.getElementById('loc-address-input').value = 'Detecting GPS position...';
+    modal.classList.add('active');
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const badge = document.getElementById('location-status-badge');
+          if (badge) badge.textContent = `Lat: ${pos.coords.latitude.toFixed(4)}, Lng: ${pos.coords.longitude.toFixed(4)}`;
+          document.getElementById('loc-address-input').value = `GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+        },
+        (err) => {
+          const badge = document.getElementById('location-status-badge');
+          if (badge) badge.textContent = 'GPS location retrieved';
+          document.getElementById('loc-address-input').value = '742 Evergreen Terrace, Sector 4';
+        },
+        { timeout: 5000 }
+      );
+    }
+  },
+
+  selectLocationPreset(title, address) {
+    document.getElementById('loc-title-input').value = title;
+    document.getElementById('loc-address-input').value = address;
+  },
+
+  confirmSendLocation() {
+    const title = document.getElementById('loc-title-input').value.trim() || 'Current Location';
+    const address = document.getElementById('loc-address-input').value.trim() || 'Shared Location';
+    const modal = document.getElementById('location-modal');
+    if (modal) modal.classList.remove('active');
+
+    this.sendMessage({
+      type: 'location',
+      locationTitle: title,
+      locationAddress: address,
+      text: `📍 Location: ${title}`
+    });
+  },
+
+  openContactModal() {
+    const modal = document.getElementById('contact-modal');
+    if (!modal) return;
+    this.renderShareContactsList('');
+    modal.classList.add('active');
+  },
+
+  renderShareContactsList(query) {
+    const container = document.getElementById('share-contacts-list');
+    if (!container) return;
+    const contacts = (window.ContactsModule ? window.ContactsModule.contacts : []) || [];
+    const q = (query || '').toLowerCase();
+    const filtered = contacts.filter(c => c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q)));
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div style="padding:16px; text-align:center; color:var(--text-secondary);">No contacts found</div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map((c, idx) => `
+      <div class="contact-item" onclick="ChatModule.selectShareContact('${c.id}')" style="display:flex; align-items:center; gap:12px; padding:10px; border-radius:8px; cursor:pointer; margin-bottom:6px; background:var(--bg-input);">
+        <input type="radio" name="share_contact_radio" id="sc_${c.id}" value="${c.id}" ${idx === 0 ? 'checked' : ''}>
+        <img src="${c.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + c.id}" style="width:40px; height:40px; border-radius:50%; object-fit:cover;">
+        <div>
+          <h4 style="margin:0; font-size:0.9rem; color:var(--text-primary);">${this.escapeHtml(c.name)}</h4>
+          <p style="margin:2px 0 0 0; font-size:0.78rem; color:var(--text-secondary);">${this.escapeHtml(c.phone || '')}</p>
+        </div>
+      </div>
+    `).join('');
+    this.selectedShareContactId = filtered[0] ? filtered[0].id : null;
+  },
+
+  filterContactShareList(val) {
+    this.renderShareContactsList(val);
+  },
+
+  selectShareContact(id) {
+    this.selectedShareContactId = id;
+    const rad = document.getElementById('sc_' + id);
+    if (rad) rad.checked = true;
+  },
+
+  confirmSendContact() {
+    const modal = document.getElementById('contact-modal');
+    if (modal) modal.classList.remove('active');
+    const contacts = (window.ContactsModule ? window.ContactsModule.contacts : []) || [];
+    const target = contacts.find(c => c.id === this.selectedShareContactId) || contacts[0];
+    if (!target) {
+      if (window.showToast) window.showToast('Please select a contact', 'warning');
+      return;
+    }
+
+    this.sendMessage({
+      type: 'contact',
+      contactName: target.name,
+      contactPhone: target.phone || '+91 9876543210',
+      contactAvatar: target.avatar || ('https://api.dicebear.com/7.x/bottts/svg?seed=' + target.id),
+      text: `👤 Contact: ${target.name}`
+    });
+  },
+
+  openOrderModal() {
+    const modal = document.getElementById('order-modal');
+    if (!modal) return;
+    document.getElementById('order-id-input').value = '#ORD-' + Math.floor(1000 + Math.random() * 9000);
+    modal.classList.add('active');
+  },
+
+  confirmSendOrder() {
+    const orderId = document.getElementById('order-id-input').value.trim() || '#ORD-1001';
+    const item = document.getElementById('order-item-input').value.trim() || 'Wireless Headphones';
+    const qty = document.getElementById('order-qty-input').value || 1;
+    const price = document.getElementById('order-price-input').value.trim() || '49.99';
+    const status = document.getElementById('order-status-select').value;
+    const modal = document.getElementById('order-modal');
+    if (modal) modal.classList.remove('active');
+
+    this.sendMessage({
+      type: 'order',
+      orderId: orderId,
+      orderItem: item,
+      orderQty: qty,
+      orderPrice: price,
+      orderStatus: status,
+      text: `🧾 Order ${orderId}: ${item}`
+    });
+  },
+
+  openCatalogModal() {
+    const modal = document.getElementById('catalog-modal');
+    if (!modal) return;
+    const items = [
+      { name: 'Wireless Headphones', price: '$89.99', desc: 'Active Noise Cancelling', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80' },
+      { name: 'Smart Fitness Watch', price: '$129.00', desc: 'Heart Rate & GPS', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80' },
+      { name: 'Ergonomic Keyboard', price: '$59.50', desc: 'Mechanical RGB Light', img: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200&q=80' },
+      { name: 'Portable Speaker', price: '$39.99', desc: 'Waterproof Bass Boost', img: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=200&q=80' }
+    ];
+    const grid = document.getElementById('catalog-items-grid');
+    if (grid) {
+      grid.innerHTML = items.map((it, idx) => `
+        <div class="catalog-item-tile ${idx === 0 ? 'selected' : ''}" onclick="ChatModule.selectCatalogTile(${idx})">
+          <img src="${it.img}" class="catalog-tile-img">
+          <div style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${it.name}</div>
+          <div style="font-size:0.8rem; font-weight:700; color:#ff5722;">${it.price}</div>
+        </div>
+      `).join('');
+    }
+    this.selectedCatalogIndex = 0;
+    this.catalogPresetItems = items;
+    modal.classList.add('active');
+  },
+
+  selectCatalogTile(idx) {
+    this.selectedCatalogIndex = idx;
+    document.querySelectorAll('.catalog-item-tile').forEach((t, i) => {
+      if (i === idx) t.classList.add('selected');
+      else t.classList.remove('selected');
+    });
+  },
+
+  confirmSendCatalog() {
+    const modal = document.getElementById('catalog-modal');
+    if (modal) modal.classList.remove('active');
+    const item = (this.catalogPresetItems && this.catalogPresetItems[this.selectedCatalogIndex]) || { name: 'Catalog Product', price: '$49.99', desc: 'Quality item', img: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80' };
+
+    this.sendMessage({
+      type: 'catalog',
+      productName: item.name,
+      productPrice: item.price,
+      productDesc: item.desc,
+      productImg: item.img,
+      text: `🏪 Catalog Item: ${item.name}`
+    });
+  },
+
+  openQuickReplyModal() {
+    const modal = document.getElementById('quickreply-modal');
+    if (modal) modal.classList.add('active');
+  },
+
+  selectQuickReply(text) {
+    const modal = document.getElementById('quickreply-modal');
+    if (modal) modal.classList.remove('active');
+    const txtInput = document.getElementById('message-input');
+    if (txtInput) {
+      txtInput.value = text;
+      txtInput.focus();
+      txtInput.dispatchEvent(new Event('input'));
+    } else {
+      this.sendMessage({ type: 'text', text: text });
+    }
+  },
+
+  openPollModal() {
+    const modal = document.getElementById('poll-modal');
+    if (modal) modal.classList.add('active');
+  },
+
+  addPollOptionField() {
+    const container = document.getElementById('poll-options-container');
+    if (!container) return;
+    const count = container.querySelectorAll('.poll-option-input').length + 1;
+    if (count > 6) {
+      if (window.showToast) window.showToast('Maximum 6 options allowed', 'warning');
+      return;
+    }
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = 'poll-option-input';
+    inp.placeholder = `Option ${count}`;
+    inp.style.cssText = 'margin-bottom:8px; width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-light); background:var(--bg-input); color:var(--text-primary);';
+    container.appendChild(inp);
+  },
+
+  confirmSendPoll() {
+    const q = document.getElementById('poll-question-input').value.trim();
+    if (!q) {
+      if (window.showToast) window.showToast('Please enter a poll question', 'warning');
+      return;
+    }
+    const optionEls = document.querySelectorAll('#poll-options-container .poll-option-input');
+    const options = Array.from(optionEls).map(el => el.value.trim()).filter(Boolean);
+    if (options.length < 2) {
+      if (window.showToast) window.showToast('Please enter at least 2 options', 'warning');
+      return;
+    }
+    const allowMultiple = document.getElementById('poll-multiple-toggle').checked;
+    const modal = document.getElementById('poll-modal');
+    if (modal) modal.classList.remove('active');
+
+    this.sendMessage({
+      type: 'poll',
+      pollQuestion: q,
+      pollOptions: options.map(opt => ({ text: opt, votes: 0, voters: [] })),
+      allowMultiple: allowMultiple,
+      text: `📊 Poll: ${q}`
+    });
+  },
+
+  votePollOption(msgId, optIdx) {
+    if (!this.activeContact) return;
+    const msgs = this.messages[this.activeContact.id] || [];
+    const msg = msgs.find(m => m.id === msgId);
+    if (!msg || !msg.pollOptions || !msg.pollOptions[optIdx]) return;
+
+    const myUid = (window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me');
+    const opt = msg.pollOptions[optIdx];
+    if (!opt.voters) opt.voters = [];
+
+    const votedIdx = opt.voters.indexOf(myUid);
+    if (votedIdx !== -1) {
+      opt.voters.splice(votedIdx, 1);
+      opt.votes = Math.max(0, (opt.votes || 1) - 1);
+    } else {
+      if (!msg.allowMultiple) {
+        msg.pollOptions.forEach(o => {
+          if (o.voters) {
+            const idx = o.voters.indexOf(myUid);
+            if (idx !== -1) {
+              o.voters.splice(idx, 1);
+              o.votes = Math.max(0, (o.votes || 1) - 1);
+            }
+          }
+        });
+      }
+      opt.voters.push(myUid);
+      opt.votes = (opt.votes || 0) + 1;
+    }
+
+    this.renderMessages();
+  },
+
+  openEventModal() {
+    const modal = document.getElementById('event-modal');
+    if (!modal) return;
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('event-date-input').value = today;
+    document.getElementById('event-time-input').value = '14:00';
+    modal.classList.add('active');
+  },
+
+  confirmSendEvent() {
+    const title = document.getElementById('event-title-input').value.trim() || 'Team Event';
+    const date = document.getElementById('event-date-input').value || '2026-09-01';
+    const time = document.getElementById('event-time-input').value || '14:00';
+    const loc = document.getElementById('event-loc-input').value.trim() || 'Conference Room / Online';
+    const desc = document.getElementById('event-desc-input').value.trim() || '';
+    const modal = document.getElementById('event-modal');
+    if (modal) modal.classList.remove('active');
+
+    this.sendMessage({
+      type: 'event',
+      eventTitle: title,
+      eventDate: date,
+      eventTime: time,
+      eventLoc: loc,
+      eventDesc: desc,
+      rsvps: [],
+      text: `📅 Event: ${title}`
+    });
+  },
+
+  toggleEventRsvp(msgId) {
+    if (!this.activeContact) return;
+    const msgs = this.messages[this.activeContact.id] || [];
+    const msg = msgs.find(m => m.id === msgId);
+    if (!msg) return;
+    if (!msg.rsvps) msg.rsvps = [];
+    const myUid = (window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me');
+
+    const idx = msg.rsvps.indexOf(myUid);
+    if (idx !== -1) {
+      msg.rsvps.splice(idx, 1);
+      if (window.showToast) window.showToast('RSVP cancelled', 'info');
+    } else {
+      msg.rsvps.push(myUid);
+      if (window.showToast) window.showToast('RSVP Confirmed! See you there 🎉', 'success');
+    }
+    this.renderMessages();
   },
 
   dataURLtoBlob(dataurl) {
@@ -2016,7 +2394,7 @@ const ChatModule = {
             </div>
           </div>
         `;
-      } else if (m.type === 'document' || (m.text && m.text.startsWith('📄'))) {
+      } else if (m.type === 'document' || (m.text && m.text.startsWith('📄') && !m.text.startsWith('📄 Event') && !m.text.startsWith('📄 Location'))) {
         this.documentCache[m.id] = m;
         const rawText = m.text || '';
         const fileName = m.fileName || rawText.replace(/^📄\s*/, '').replace(/\s*\([\d.]+\s*KB\)$/, '') || 'Document';
@@ -2034,6 +2412,128 @@ const ChatModule = {
             </div>
             <div class="doc-download-icon">
               <i class="fa-solid fa-circle-down"></i>
+            </div>
+          </div>
+        `;
+      } else if (m.type === 'location' || (m.text && m.text.startsWith('📍 Location:'))) {
+        const locTitle = m.locationTitle || (m.text ? m.text.replace('📍 Location:', '').trim() : 'Location');
+        const locAddr = m.locationAddress || 'Shared coordinates';
+        bodyHtml = `
+          <div class="location-card">
+            <div class="location-map-fake">
+              <i class="fa-solid fa-location-dot location-pin-pulse"></i>
+              <span style="font-size:0.75rem; color:#fff; background:rgba(0,0,0,0.4); padding:2px 8px; border-radius:10px;">GPS Location</span>
+            </div>
+            <div class="location-info-body">
+              <span class="location-title">${this.escapeHtml(locTitle)}</span>
+              <span class="location-subtext">${this.escapeHtml(locAddr)}</span>
+              <button class="location-action-btn" onclick="event.stopPropagation(); window.open('https://maps.google.com/?q=' + encodeURIComponent('${this.escapeHtml(locTitle + ' ' + locAddr)}'), '_blank')">
+                <i class="fa-solid fa-map-pin"></i> View on Google Maps
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (m.type === 'contact' || (m.text && m.text.startsWith('👤 Contact:'))) {
+        const cName = m.contactName || (m.text ? m.text.replace('👤 Contact:', '').trim() : 'Contact');
+        const cPhone = m.contactPhone || '+91 9876543210';
+        const cAvatar = m.contactAvatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=user1';
+        bodyHtml = `
+          <div class="contact-card">
+            <div class="contact-card-header">
+              <img src="${cAvatar}" class="contact-card-avatar">
+              <div class="contact-card-info">
+                <h4>${this.escapeHtml(cName)}</h4>
+                <p>${this.escapeHtml(cPhone)}</p>
+              </div>
+            </div>
+            <div class="contact-card-actions">
+              <button class="contact-card-btn" onclick="event.stopPropagation(); if(window.ContactsModule) window.ContactsModule.startDirectChat({ name: '${this.escapeHtml(cName)}', phone: '${this.escapeHtml(cPhone)}', avatar: '${cAvatar}' })">Message</button>
+            </div>
+          </div>
+        `;
+      } else if (m.type === 'order' || (m.text && m.text.startsWith('🧾 Order'))) {
+        const oId = m.orderId || '#ORD-1001';
+        const oItem = m.orderItem || 'Item Details';
+        const oQty = m.orderQty || 1;
+        const oPrice = m.orderPrice || '49.99';
+        const oStatus = m.orderStatus || 'Paid';
+        bodyHtml = `
+          <div class="order-card">
+            <div class="order-card-header">
+              <span class="order-card-title">${this.escapeHtml(oId)}</span>
+              <span class="order-card-badge">${this.escapeHtml(oStatus)}</span>
+            </div>
+            <div style="font-size:0.88rem; font-weight:600; color:var(--text-primary); margin-bottom:4px;">${this.escapeHtml(oItem)}</div>
+            <div style="font-size:0.8rem; color:var(--text-secondary);">Qty: ${oQty}</div>
+            <div class="order-card-price">$${this.escapeHtml(oPrice)}</div>
+          </div>
+        `;
+      } else if (m.type === 'catalog' || (m.text && m.text.startsWith('🏪 Catalog'))) {
+        const pName = m.productName || 'Product Item';
+        const pPrice = m.productPrice || '$49.99';
+        const pDesc = m.productDesc || 'Product description';
+        const pImg = m.productImg || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80';
+        bodyHtml = `
+          <div class="catalog-card">
+            <img src="${pImg}" class="catalog-card-img">
+            <div class="catalog-card-body">
+              <div style="font-weight:600; font-size:0.9rem; color:var(--text-primary);">${this.escapeHtml(pName)}</div>
+              <div style="font-weight:700; font-size:1.05rem; color:#ff5722; margin:2px 0;">${this.escapeHtml(pPrice)}</div>
+              <div style="font-size:0.78rem; color:var(--text-secondary);">${this.escapeHtml(pDesc)}</div>
+            </div>
+          </div>
+        `;
+      } else if (m.type === 'poll' || (m.text && m.text.startsWith('📊 Poll:'))) {
+        const pQuestion = m.pollQuestion || (m.text ? m.text.replace('📊 Poll:', '').trim() : 'Poll Question');
+        const options = m.pollOptions || [];
+        const totalVotes = options.reduce((sum, o) => sum + (o.votes || 0), 0);
+        const myUid = (window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me');
+
+        const optionsHtml = options.map((opt, idx) => {
+          const voteCount = opt.votes || 0;
+          const pct = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+          const isVoted = opt.voters && opt.voters.includes(myUid);
+
+          return `
+            <button class="poll-option-btn ${isVoted ? 'voted' : ''}" onclick="event.stopPropagation(); ChatModule.votePollOption('${m.id}', ${idx})">
+              <div class="poll-fill-bar" style="width: ${pct}%;"></div>
+              <span style="position:relative; z-index:1;">${isVoted ? '☑' : '☐'} ${this.escapeHtml(opt.text)}</span>
+              <span style="position:relative; z-index:1; font-weight:700; font-size:0.78rem; color:var(--text-secondary);">${voteCount} (${pct}%)</span>
+            </button>
+          `;
+        }).join('');
+
+        bodyHtml = `
+          <div class="poll-card">
+            <div class="poll-card-title"><i class="fa-solid fa-chart-simple" style="color:#ff9800;"></i> ${this.escapeHtml(pQuestion)}</div>
+            <div class="poll-options-list">${optionsHtml}</div>
+            <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:6px; text-align:right;">${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</div>
+          </div>
+        `;
+      } else if (m.type === 'event' || (m.text && m.text.startsWith('📅 Event:'))) {
+        const eTitle = m.eventTitle || (m.text ? m.text.replace('📅 Event:', '').trim() : 'Event');
+        const eDate = m.eventDate || '2026-09-01';
+        const eTime = m.eventTime || '14:00';
+        const eLoc = m.eventLoc || 'Online';
+        const rsvps = m.rsvps || [];
+        const myUid = (window.AppConfig.currentUser ? window.AppConfig.currentUser.uid : 'me');
+        const isGoing = rsvps.includes(myUid);
+        const dateObj = new Date(eDate);
+        const monthStr = dateObj.toLocaleString('default', { month: 'short' });
+        const dayStr = dateObj.getDate() || '15';
+
+        bodyHtml = `
+          <div class="event-card">
+            <div class="event-date-box">
+              <span>${monthStr}</span>
+              <strong>${dayStr}</strong>
+            </div>
+            <div class="event-details" style="flex:1;">
+              <h4>${this.escapeHtml(eTitle)}</h4>
+              <p><i class="fa-regular fa-clock"></i> ${this.escapeHtml(eTime)} • <i class="fa-solid fa-location-dot"></i> ${this.escapeHtml(eLoc)}</p>
+              <button class="btn btn-sm ${isGoing ? 'btn-success' : 'btn-primary'}" onclick="event.stopPropagation(); ChatModule.toggleEventRsvp('${m.id}')" style="margin-top:8px; padding:4px 10px; font-size:0.75rem;">
+                <i class="fa-solid ${isGoing ? 'fa-circle-check' : 'fa-calendar-check'}"></i> ${isGoing ? 'Going ✓ (' + rsvps.length + ')' : 'RSVP / Join'}
+              </button>
             </div>
           </div>
         `;
